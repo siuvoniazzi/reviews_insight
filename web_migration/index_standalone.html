@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="de">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Modern App Review Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Material+Icons+Round&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0F172A",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .material-icons-round {
+            vertical-align: middle;
+            font-size: 1.25rem;
+        }
+
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: visible !important;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside
+        class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hidden lg:flex flex-col sticky top-0 h-screen">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                <span class="material-icons-round">analytics</span>
+            </div>
+            <span class="font-bold text-xl tracking-tight">ReviewAI</span>
+        </div>
+        <nav class="flex-1 px-4 space-y-1 mt-4">
+            <a class="flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-primary dark:text-white rounded-xl font-medium cursor-pointer"
+                id="nav-dashboard">
+                <span class="material-icons-round">dashboard</span> Dashboard
+            </a>
+            <div class="mt-8 px-4">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Apps</p>
+                <div class="space-y-1">
+                    <button id="btn-select-app-a"
+                        class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span id="label-app-a-name">App A</span>
+                    </button>
+                    <button id="btn-select-app-b"
+                        class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                        <span id="label-app-b-name">App B</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+        <header
+            class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
+            <h1 class="text-lg font-semibold" id="header-title">Analyse: -</h1>
+            <div class="flex items-center gap-4">
+                <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                    onclick="document.documentElement.classList.toggle('dark')">
+                    <span class="material-icons-round dark:hidden">dark_mode</span>
+                    <span class="material-icons-round hidden dark:block">light_mode</span>
+                </button>
+                <button id="btn-refresh" title="Daten neu laden"
+                    class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                    <span class="material-icons-round">refresh</span>
+                </button>
+                <button id="btn-export-csv" title="Reviews als CSV exportieren"
+                    class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                    <span class="material-icons-round">download</span>
+                </button>
+                <button id="btn-header-settings"
+                    class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-slate-800 transition-colors">
+                    <span class="material-icons-round text-base">settings</span>
+                    <span class="hidden sm:inline">Einstellungen</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="px-16 py-8 mx-auto space-y-8">
+            <section>
+                <div class="flex items-baseline gap-3 mb-2 flex-wrap">
+                    <h2 class="text-3xl font-bold tracking-tight">Gemini Insights Comparison</h2>
+                    <span class="text-slate-500 text-sm font-normal" id="last-updated">Aktualisiert: nie</span>
+                    <span class="text-slate-500 text-sm font-normal" id="date-range-badge"></span>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 max-w-3xl">Detaillierte KI-gestützte Analyse der
+                    App-Store-Bewertungen.</p>
+            </section>
+
+            <div id="loading-indicator" class="hidden flex justify-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+
+            <div id="dashboard-content" class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- Apple Card -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                    <div
+                        class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🍎</span>
+                            <h3 class="font-bold text-lg">Apple App Store</h3>
+                        </div>
+                        <span id="apple-verdict-badge"
+                            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1"></span>
+                    </div>
+                    <div class="p-8 space-y-8">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment
+                                Übersicht</h4>
+                            <p id="apple-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                Noch keine Analyse vorhanden.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <h4
+                                    class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_up</span> POSITIV
+                                </h4>
+                                <ul id="apple-pros" class="space-y-3 text-sm"></ul>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_down</span> NEGATIV
+                                </h4>
+                                <ul id="apple-cons" class="space-y-3 text-sm"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Card -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                    <div
+                        class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">▶️</span>
+                            <h3 class="font-bold text-lg">Google Play Store</h3>
+                        </div>
+                        <span id="google-verdict-badge"
+                            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1"></span>
+                    </div>
+                    <div class="p-8 space-y-8">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment
+                                Übersicht</h4>
+                            <p id="google-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                Noch keine Analyse vorhanden.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <h4
+                                    class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_up</span> POSITIV
+                                </h4>
+                                <ul id="google-pros" class="space-y-3 text-sm"></ul>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_down</span> NEGATIV
+                                </h4>
+                                <ul id="google-cons" class="space-y-3 text-sm"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="space-y-6">
+                <div class="flex items-center gap-3">
+                    <span class="material-icons-round text-amber-500">lightbulb</span>
+                    <h3 class="text-xl font-bold">Empfohlene Massnahmen</h3>
+                </div>
+                <div id="advice-container" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+            </section>
+
+            <section class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold">Individuelle Reviews</h3>
+                </div>
+                <div id="reviews-container" class="space-y-4"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Configuration Modal -->
+    <div id="config-modal"
+        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50" onclick="toggleModal(false)"></div>
+        <div
+            class="modal-container bg-white dark:bg-slate-800 w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-2xl font-bold">Einstellungen</p>
+                    <div class="modal-close cursor-pointer z-50" onclick="toggleModal(false)">
+                        <span class="material-icons-round">close</span>
+                    </div>
+                </div>
+
+                <div class="my-5">
+                    <form id="config-form" class="space-y-4" onsubmit="handleConfigSubmit(event)">
+                        <div class="flex space-x-2 bg-slate-100 p-1 rounded-lg">
+                            <button type="button" id="tab-app-a" onclick="switchConfigTab('app_a')"
+                                class="flex-1 py-1 px-3 rounded-md bg-white shadow-sm text-sm font-medium transition-all">App
+                                A</button>
+                            <button type="button" id="tab-app-b" onclick="switchConfigTab('app_b')"
+                                class="flex-1 py-1 px-3 rounded-md text-slate-500 hover:text-slate-700 text-sm font-medium transition-all">App
+                                B</button>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">App Name</label>
+                            <input type="text" id="input-app-name"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Apple App
+                                ID</label>
+                            <input type="text" id="input-app-id"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Google Play
+                                CSV</label>
+                            <input type="file" id="input-google-csv" accept=".csv" multiple
+                                class="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p id="google-file-status" class="text-xs text-slate-500 mt-1"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Zeitraum
+                                der Analyse</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-500 mb-1">Von</label>
+                                    <input type="date" id="input-date-from"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm dark:bg-slate-700 dark:border-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-500 mb-1">Bis</label>
+                                    <input type="date" id="input-date-to"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm dark:bg-slate-700 dark:border-slate-600">
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Leer lassen für alle verfügbaren Reviews</p>
+                        </div>
+
+                        <hr class="border-slate-200 dark:border-slate-700">
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Gemini API
+                                Key</label>
+                            <input type="password" id="input-api-key"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit"
+                                class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800">
+                                Speichern & Analysieren
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+        <script type="module">
+            // Import from CDN
+            import { GoogleGenerativeAI } from "@google/generative-ai";
+
+            // Make it globally available for the rest of the code
+            window.GoogleGenerativeAI = GoogleGenerativeAI;
+        </script>
+        <script>
+            // Wait for module to load
+            window.addEventListener('load', function () {
+                // State
+                const state = {
+                    apiKey: localStorage.getItem('gemini_api_key') || '',
+                    activeAppId: 'app_a',
+                    apps: {
+                        app_a: {
+                            name: localStorage.getItem('appA_name') || 'Visana App',
+                            id: localStorage.getItem('appA_id') || '1221367995',
+                            dateFrom: localStorage.getItem('appA_dateFrom') || '',
+                            dateTo: localStorage.getItem('appA_dateTo') || '',
+                            googleFiles: [], // Changed from googleFile to array
+                            appleReviews: [],
+                            googleReviews: [],
+                            insights: { apple: null, google: null }
+                        },
+                        app_b: {
+                            name: localStorage.getItem('appB_name') || 'myPoints',
+                            id: localStorage.getItem('appB_id') || '6745941827',
+                            dateFrom: localStorage.getItem('appB_dateFrom') || '',
+                            dateTo: localStorage.getItem('appB_dateTo') || '',
+                            googleFiles: [], // Changed from googleFile to array
+                            appleReviews: [],
+                            googleReviews: [],
+                            insights: { apple: null, google: null }
+                        }
+                    }
+                };
+
+                let configEditingApp = 'app_a';
+
+                // Modal Functions - Make global for onclick handlers
+                window.toggleModal = function (show) {
+                    const modal = document.getElementById('config-modal');
+                    if (show) {
+                        modal.classList.remove('opacity-0', 'pointer-events-none');
+                        document.body.classList.add('modal-active');
+                        populateModal();
+                    } else {
+                        modal.classList.add('opacity-0', 'pointer-events-none');
+                        document.body.classList.remove('modal-active');
+                    }
+                }
+
+                window.switchConfigTab = function (appKey) {
+                    configEditingApp = appKey;
+                    const tabA = document.getElementById('tab-app-a');
+                    const tabB = document.getElementById('tab-app-b');
+
+                    if (appKey === 'app_a') {
+                        tabA.classList.add('bg-white', 'shadow-sm');
+                        tabA.classList.remove('text-slate-500');
+                        tabB.classList.remove('bg-white', 'shadow-sm');
+                        tabB.classList.add('text-slate-500');
+                    } else {
+                        tabB.classList.add('bg-white', 'shadow-sm');
+                        tabB.classList.remove('text-slate-500');
+                        tabA.classList.remove('bg-white', 'shadow-sm');
+                        tabA.classList.add('text-slate-500');
+                    }
+                    populateModal();
+                }
+
+                function populateModal() {
+                    const app = state.apps[configEditingApp];
+                    document.getElementById('input-app-name').value = app.name;
+                    document.getElementById('input-app-id').value = app.id;
+                    document.getElementById('input-date-from').value = app.dateFrom || '';
+                    document.getElementById('input-date-to').value = app.dateTo || '';
+                    document.getElementById('input-api-key').value = state.apiKey;
+
+                    const status = document.getElementById('google-file-status');
+                    if (app.googleFiles && app.googleFiles.length > 0) {
+                        status.innerText = `${app.googleFiles.length} Datei(en) ausgewählt: ${app.googleFiles.map(f => f.name).join(', ')}`;
+                    } else {
+                        status.innerText = "Keine Datei gewählt.";
+                    }
+                }
+
+                window.handleConfigSubmit = function (e) {
+                    e.preventDefault();
+                    console.log('=== CONFIG SUBMIT ===');
+
+                    state.apiKey = document.getElementById('input-api-key').value;
+                    const app = state.apps[configEditingApp];
+                    app.name = document.getElementById('input-app-name').value;
+                    app.id = document.getElementById('input-app-id').value;
+                    app.dateFrom = document.getElementById('input-date-from').value;
+                    app.dateTo = document.getElementById('input-date-to').value;
+
+                    const fileInput = document.getElementById('input-google-csv');
+                    console.log('📁 File input check - files.length:', fileInput.files.length);
+                    if (fileInput.files.length > 0) {
+                        app.googleFiles = Array.from(fileInput.files);
+                        console.log('✅ Google CSV files selected and stored:', app.googleFiles.map(f => f.name));
+                        console.log('📊 app.googleFiles array:', app.googleFiles);
+                    } else {
+                        console.warn('⚠️ No files selected from input!');
+                    }
+
+                    console.log('Config saved:', {
+                        editingApp: configEditingApp,
+                        activeApp: state.activeAppId,
+                        appName: app.name,
+                        appId: app.id,
+                        dateFrom: app.dateFrom,
+                        dateTo: app.dateTo,
+                        hasApiKey: !!state.apiKey
+                    });
+
+                    localStorage.setItem('gemini_api_key', state.apiKey);
+                    const appPrefix = configEditingApp === 'app_a' ? 'A' : 'B';
+                    localStorage.setItem(`app${appPrefix}_name`, app.name);
+                    localStorage.setItem(`app${appPrefix}_id`, app.id);
+                    localStorage.setItem(`app${appPrefix}_dateFrom`, app.dateFrom);
+                    localStorage.setItem(`app${appPrefix}_dateTo`, app.dateTo);
+
+                    window.toggleModal(false);
+
+                    if (state.activeAppId === configEditingApp) {
+                        console.log('Loading data for active app...');
+                        loadData(true); // Force refresh when settings change
+                    } else {
+                        console.log('Just rendering (not loading data for inactive app)');
+                        render();
+                    }
+                }
+
+                // Apple Reviews
+                async function fetchAppleReviews(appId, country = 'ch') {
+                    const url = `https://itunes.apple.com/${country}/rss/customerreviews/id=${appId}/sortBy=mostRecent/json`;
+                    console.log(`Fetching from: ${url}`);
+
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                        const data = await response.json();
+                        const feed = data.feed;
+
+                        if (!feed || !feed.entry) return [];
+
+                        const entries = Array.isArray(feed.entry) ? feed.entry : [feed.entry];
+
+                        return entries.map(entry => {
+                            const author = entry.author?.name?.label || 'Anonymous';
+                            const title = entry.title?.label || '';
+                            const content = entry.content?.label || '';
+                            const rating = parseFloat(entry['im:rating']?.label || '0');
+                            const dateStr = entry.updated?.label;
+                            const date = dateStr ? new Date(dateStr) : new Date();
+
+                            return { source: 'apple', author, rating, content: title ? `${title}\n${content}` : content, date };
+                        });
+                    } catch (error) {
+                        console.error("Error fetching Apple reviews:", error);
+                        return [];
+                    }
+                }
+
+                // Google CSV Parser
+                function parseCSVString(str) {
+                    const arr = [];
+                    let quote = false, row = [], col = '';
+
+                    for (let c = 0; c < str.length; c++) {
+                        let cc = str[c], nc = str[c + 1];
+
+                        if (cc === '"') {
+                            if (quote && nc === '"') { col += '"'; c++; }
+                            else { quote = !quote; }
+                        } else if (cc === ',' && !quote) {
+                            row.push(col); col = '';
+                        } else if ((cc === '\r' || cc === '\n') && !quote) {
+                            row.push(col); col = '';
+                            if (row.length > 0) arr.push(row);
+                            row = [];
+                            if (cc === '\r' && nc === '\n') c++;
+                        } else {
+                            col += cc;
+                        }
+                    }
+                    if (row.length > 0 || col.length > 0) {
+                        row.push(col); arr.push(row);
+                    }
+                    return arr;
+                }
+
+                async function parseGoogleCsv(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const buffer = e.target.result;
+                                let content = '';
+                                const uint8 = new Uint8Array(buffer);
+
+                                if (uint8[0] === 0xFF && uint8[1] === 0xFE) {
+                                    const decoder = new TextDecoder('utf-16le');
+                                    content = decoder.decode(uint8.subarray(2));
+                                } else {
+                                    const decoder = new TextDecoder('utf-8');
+                                    content = decoder.decode(uint8);
+                                }
+
+                                const rows = parseCSVString(content);
+                                if (rows.length === 0) return resolve([]);
+
+                                const headers = rows[0].map(h => h.trim().toLowerCase());
+                                const ratingIdx = headers.findIndex(h => h.includes('star rating'));
+                                const textIdx = headers.findIndex(h => h.includes('review text'));
+                                const titleIdx = headers.findIndex(h => h.includes('review title'));
+                                const dateIdx = headers.findIndex(h => h.includes('submit date'));
+
+                                if (ratingIdx === -1) {
+                                    console.warn("Invalid Google CSV");
+                                    return resolve([]);
+                                }
+
+                                const reviews = [];
+                                for (let i = 1; i < rows.length; i++) {
+                                    const row = rows[i];
+                                    if (row.length <= ratingIdx) continue;
+
+                                    const rating = parseFloat(row[ratingIdx]) || 0;
+                                    let body = '';
+                                    if (textIdx !== -1 && row[textIdx]) body = row[textIdx];
+                                    if (titleIdx !== -1 && row[titleIdx]) {
+                                        const title = row[titleIdx];
+                                        body = body ? `${title}\n${body}` : title;
+                                    }
+                                    const dateStr = (dateIdx !== -1 && row[dateIdx]) ? row[dateIdx] : null;
+
+                                    reviews.push({
+                                        source: 'google',
+                                        author: 'Google User',
+                                        rating,
+                                        content: body || '[No written review]',
+                                        date: dateStr ? new Date(dateStr) : new Date()
+                                    });
+                                }
+                                resolve(reviews);
+                            } catch (err) {
+                                console.error("CSV Parse Error:", err);
+                                resolve([]);
+                            }
+                        };
+                        reader.onerror = () => reject(reader.error);
+                        reader.readAsArrayBuffer(file);
+                    });
+                }
+
+                // Gemini
+                async function generateInsights(reviews, apiKey) {
+                    if (!reviews || reviews.length === 0) {
+                        return { sentiment: "Keine Daten.", top_positive: [], top_negative: [], advice: [], verdict: "NEUTRAL" };
+                    }
+                    if (!apiKey) {
+                        return { sentiment: "API Key fehlt.", top_positive: [], top_negative: [], advice: [], verdict: "NEUTRAL" };
+                    }
+
+                    try {
+                        if (!window.GoogleGenerativeAI) {
+                            throw new Error("Google AI SDK nicht geladen. Bitte Seite neu laden.");
+                        }
+                        const genAI = new window.GoogleGenerativeAI(apiKey);
+                        const model = genAI.getGenerativeModel({
+                            model: "gemini-3-flash-preview",
+                            generationConfig: { responseMimeType: "application/json" }
+                        });
+
+                        const prompt = `Analysiere die folgenden App-Bewertungen und gib das Ergebnis NUR als valides JSON zurück.
+Erwartetes JSON-Format:
+{
+    "sentiment": "Zusammenfassung der Stimmung (max 2 Sätze in Deutsch)",
+    "top_positive": ["Punkt 1", "Punkt 2", "Punkt 3"],
+    "top_negative": ["Punkt 1", "Punkt 2", "Punkt 3"],
+    "advice": ["Rat 1", "Rat 2", "Rat 3"],
+    "verdict": "POSITIVE" oder "NEGATIVE" oder "NEUTRAL"
+}
+
+Bewertungen:
+${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: ${r.content}`).join('\n')}`;
+
+                        const result = await model.generateContent(prompt);
+                        const text = result.response.text();
+                        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                        return JSON.parse(cleanText);
+                    } catch (e) {
+                        console.error("Gemini Error:", e);
+                        return { sentiment: `Fehler: ${e.message}`, top_positive: [], top_negative: [], advice: [], verdict: "NEUTRAL" };
+                    }
+                }
+
+                // Filter reviews by date range
+                function filterReviewsByDate(reviews, dateFrom, dateTo) {
+                    if (!dateFrom && !dateTo) return reviews;
+
+                    const from = dateFrom ? new Date(dateFrom) : null;
+                    const to = dateTo ? new Date(dateTo) : null;
+                    if (to) to.setHours(23, 59, 59, 999); // Include entire end date
+
+                    console.log(`📅 Filtering ${reviews.length} reviews with range: ${dateFrom || 'any'} to ${dateTo || 'any'}`);
+                    if (reviews.length > 0) {
+                        console.log('Sample review date:', reviews[0].date, 'Type:', typeof reviews[0].date);
+                    }
+
+                    const filtered = reviews.filter(review => {
+                        const reviewDate = review.date;
+                        if (from && reviewDate < from) return false;
+                        if (to && reviewDate > to) return false;
+                        return true;
+                    });
+
+                    console.log(`✂️ After filtering: ${filtered.length} reviews remaining`);
+                    if (filtered.length === 0 && reviews.length > 0) {
+                        console.warn('⚠️ All reviews filtered out! Sample dates from original:', reviews.slice(0, 3).map(r => r.date));
+                    }
+
+                    return filtered;
+                }
+
+                // Data Loading
+                async function loadData(forceRefresh = false) {
+                    console.log('=== LOAD DATA START ===', forceRefresh ? '(FORCE REFRESH)' : '(using cache if available)');
+                    const currentApp = state.apps[state.activeAppId];
+                    console.log('Current app:', { id: state.activeAppId, name: currentApp.name, appId: currentApp.id, dateRange: `${currentApp.dateFrom || 'all'} - ${currentApp.dateTo || 'all'}` });
+
+                    document.getElementById('loading-indicator').classList.remove('hidden');
+                    document.getElementById('dashboard-content').classList.add('opacity-50');
+
+                    try {
+                        // Check if we already have data cached (unless force refresh)
+                        const hasCachedApple = currentApp.appleReviews.length > 0;
+                        const hasCachedGoogle = currentApp.googleReviews.length > 0;
+                        const hasCachedInsights = currentApp.insights.apple !== null || currentApp.insights.google !== null;
+
+                        if (!forceRefresh && hasCachedInsights) {
+                            console.log('Using cached data, skipping fetch');
+                            render();
+                            document.getElementById('loading-indicator').classList.add('hidden');
+                            document.getElementById('dashboard-content').classList.remove('opacity-50');
+                            return;
+                        }
+
+                        if (currentApp.id && (forceRefresh || !hasCachedApple)) {
+                            console.log('Fetching Apple reviews...');
+                            currentApp.appleReviews = await fetchAppleReviews(currentApp.id);
+                            console.log('Apple reviews fetched:', currentApp.appleReviews.length);
+                        } else if (hasCachedApple) {
+                            console.log('Using cached Apple reviews:', currentApp.appleReviews.length);
+                        }
+
+                        console.log('🔍 Checking Google files - googleFiles:', currentApp.googleFiles, 'length:', currentApp.googleFiles?.length, 'forceRefresh:', forceRefresh, 'hasCachedGoogle:', hasCachedGoogle);
+
+                        if (currentApp.googleFiles && currentApp.googleFiles.length > 0 && (forceRefresh || !hasCachedGoogle)) {
+                            console.log('📄 Parsing Google CSV files...');
+                            currentApp.googleReviews = [];
+                            for (const file of currentApp.googleFiles) {
+                                console.log(`  📄 Parsing ${file.name}...`);
+                                const reviews = await parseGoogleCsv(file);
+                                console.log(`  ✅ Parsed ${reviews.length} reviews from ${file.name}`);
+                                currentApp.googleReviews.push(...reviews);
+                            }
+                            console.log('✅ Google reviews parsed (total from all files):', currentApp.googleReviews.length);
+                        } else if (hasCachedGoogle) {
+                            console.log('📦 Using cached Google reviews:', currentApp.googleReviews.length);
+                        } else {
+                            console.error('❌ NO Google CSV files to parse!');
+                            console.log('  googleFiles:', currentApp.googleFiles);
+                            console.log('  googleFiles.length:', currentApp.googleFiles?.length);
+                            console.log('  hasCachedGoogle:', hasCachedGoogle);
+                            console.log('  forceRefresh:', forceRefresh);
+                        }
+
+                        // Filter reviews by date range before sending to LLM
+                        const filteredApple = filterReviewsByDate(currentApp.appleReviews, currentApp.dateFrom, currentApp.dateTo);
+                        const filteredGoogle = filterReviewsByDate(currentApp.googleReviews, currentApp.dateFrom, currentApp.dateTo);
+
+                        console.log('Filtered reviews:', { apple: filteredApple.length, google: filteredGoogle.length });
+
+                        if (state.apiKey) {
+                            if (filteredApple.length > 0) {
+                                console.log('Generating Apple insights...');
+                                currentApp.insights.apple = await generateInsights(filteredApple, state.apiKey);
+                                console.log('Apple insights:', currentApp.insights.apple);
+                            } else {
+                                currentApp.insights.apple = null;
+                            }
+                            if (filteredGoogle.length > 0) {
+                                console.log('Generating Google insights...');
+                                currentApp.insights.google = await generateInsights(filteredGoogle, state.apiKey);
+                                console.log('Google insights:', currentApp.insights.google);
+                            } else {
+                                currentApp.insights.google = null;
+                            }
+                        } else {
+                            console.warn('No API key - skipping insights generation');
+                        }
+
+                        console.log('Rendering results...');
+                        render();
+                        console.log('=== LOAD DATA COMPLETE ===');
+                    } catch (error) {
+                        console.error('ERROR during loadData:', error);
+                        alert('Fehler beim Laden der Daten: ' + error.message);
+                    } finally {
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        document.getElementById('dashboard-content').classList.remove('opacity-50');
+                        document.getElementById('last-updated').innerText = `Aktualisiert: ${new Date().toLocaleTimeString()}`;
+                    }
+                }
+
+                // Rendering
+                function render() {
+                    console.log('=== RENDER START ===');
+                    const app = state.apps[state.activeAppId];
+                    console.log('Rendering app:', app.name, 'Insights:', app.insights);
+
+                    document.getElementById('header-title').innerText = `Analyse: ${app.name}`;
+                    document.getElementById('label-app-a-name').innerText = state.apps.app_a.name;
+                    document.getElementById('label-app-b-name').innerText = state.apps.app_b.name;
+
+                    // Update date range badge
+                    const dateRangeBadge = document.getElementById('date-range-badge');
+                    if (app.dateFrom || app.dateTo) {
+                        const fromStr = app.dateFrom ? new Date(app.dateFrom).toLocaleDateString('de-CH') : 'Anfang';
+                        const toStr = app.dateTo ? new Date(app.dateTo).toLocaleDateString('de-CH') : 'Heute';
+                        dateRangeBadge.innerHTML = `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-medium">📅 ${fromStr} - ${toStr}</span>`;
+                    } else {
+                        dateRangeBadge.innerHTML = '';
+                    }
+
+                    const btnA = document.getElementById('btn-select-app-a');
+                    const btnB = document.getElementById('btn-select-app-b');
+                    if (state.activeAppId === 'app_a') {
+                        btnA.classList.add('bg-slate-100', 'dark:bg-slate-800', 'font-semibold');
+                        btnB.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'font-semibold');
+                    } else {
+                        btnB.classList.add('bg-slate-100', 'dark:bg-slate-800', 'font-semibold');
+                        btnA.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'font-semibold');
+                    }
+
+                    renderCard('apple', app.insights.apple);
+                    renderCard('google', app.insights.google);
+
+                    // Separate advice for iOS and Android
+                    const appleAdvice = app.insights.apple?.advice || [];
+                    const googleAdvice = app.insights.google?.advice || [];
+
+                    let adviceHTML = '';
+
+                    if (appleAdvice.length > 0) {
+                        adviceHTML += `
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2 col-span-full">
+                                <span class="text-2xl">🍎</span>
+                                Handlungsempfehlung iOS
+                            </h3>
+                        `;
+                        appleAdvice.forEach(a => {
+                            adviceHTML += `
+                                <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                                    <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center mb-4">
+                                        <span class="material-icons-round">campaign</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${a}</p>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    if (googleAdvice.length > 0) {
+                        adviceHTML += `
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2 col-span-full">
+                                <span class="text-2xl">▶️</span>
+                                Handlungsempfehlung Android
+                            </h3>
+                        `;
+                        googleAdvice.forEach(a => {
+                            adviceHTML += `
+                                <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                                    <div class="w-10 h-10 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg flex items-center justify-center mb-4">
+                                        <span class="material-icons-round">campaign</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${a}</p>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    document.getElementById('advice-container').innerHTML = adviceHTML;
+
+                    const recentReviews = [...app.appleReviews, ...app.googleReviews]
+                        .sort((a, b) => b.date - a.date);
+
+                    document.getElementById('reviews-container').innerHTML = recentReviews.map(r => `
+        <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <span class="material-icons-round">person</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                             <span class="font-bold">${r.author}</span>
+                             <span class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 uppercase">${r.source}</span>
+                        </div>
+                        <div class="flex text-amber-400 text-sm">
+                            ${Array(5).fill(0).map((_, i) => `<span class="material-icons-round text-base">${i < r.rating ? 'star' : 'star_border'}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                <span class="text-xs text-slate-400 font-medium">${r.date.toLocaleDateString()}</span>
+            </div>
+            <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${r.content.replace(/\n/g, '<br>')}</p>
+        </div>
+    `).join('');
+                }
+
+                function renderCard(platform, insights) {
+                    console.log(`Rendering ${platform} card:`, insights);
+                    if (!insights) {
+                        console.warn(`No insights for ${platform}, skipping render`);
+                        return;
+                    }
+
+                    const verdict = document.getElementById(`${platform}-verdict-badge`);
+                    const sentiment = document.getElementById(`${platform}-sentiment`);
+                    const pros = document.getElementById(`${platform}-pros`);
+                    const cons = document.getElementById(`${platform}-cons`);
+
+                    const isNeg = insights.verdict === 'NEGATIVE';
+                    const color = isNeg ? 'red' : (insights.verdict === 'POSITIVE' ? 'emerald' : 'gray');
+
+                    verdict.className = `px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 bg-${color}-100 dark:bg-${color}-900/30 text-${color}-700 dark:text-${color}-400`;
+                    verdict.innerHTML = `<span class="material-icons-round text-sm">${isNeg ? 'trending_down' : 'trending_up'}</span> ${insights.verdict}`;
+
+                    sentiment.innerHTML = insights.sentiment;
+                    pros.innerHTML = insights.top_positive.map(p => `<li class="flex gap-2 text-slate-600 dark:text-slate-400"><span class="text-emerald-500">•</span> ${p}</li>`).join('');
+                    cons.innerHTML = insights.top_negative.map(p => `<li class="flex gap-2 text-slate-600 dark:text-slate-400"><span class="text-red-500">•</span> ${p}</li>`).join('');
+                }
+
+                // Initialize - runs when everything is loaded
+                document.getElementById('btn-select-app-a').onclick = () => { state.activeAppId = 'app_a'; render(); loadData(); };
+                document.getElementById('btn-select-app-b').onclick = () => { state.activeAppId = 'app_b'; render(); loadData(); };
+
+                document.getElementById('btn-refresh').onclick = () => {
+                    console.log('Manual refresh requested');
+                    loadData(true); // Force refresh
+                };
+
+                document.getElementById('btn-export-csv').onclick = () => {
+                    const app = state.apps[state.activeAppId];
+                    const allReviews = [...app.appleReviews, ...app.googleReviews];
+
+                    if (allReviews.length === 0) {
+                        alert('Keine Reviews zum Exportieren vorhanden.');
+                        return;
+                    }
+
+                    // CSV Header
+                    let csv = 'Date,OS,Username,Rating,Text\n';
+
+                    // CSV Rows
+                    allReviews.forEach(review => {
+                        const date = review.date.toISOString().split('T')[0]; // YYYY-MM-DD
+                        const os = review.source === 'apple' ? 'iOS' : 'Android';
+                        const username = `"${(review.author || '').replace(/"/g, '""')}"`; // Escape quotes
+                        const rating = review.rating;
+                        const text = `"${(review.content || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`; // Escape quotes and newlines
+
+                        csv += `${date},${os},${username},${rating},${text}\n`;
+                    });
+
+                    // Create download
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${app.name.replace(/\s+/g, '_')}_Reviews_${new Date().toISOString().split('T')[0]}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+
+                    console.log(`Exported ${allReviews.length} reviews to CSV`);
+                };
+
+                document.getElementById('btn-header-settings').onclick = () => window.toggleModal(true);
+
+                render();
+                if (!state.apiKey) {
+                    window.toggleModal(true);
+                } else {
+                    loadData();
+                }
+
+            }); // End window.addEventListener('load')
+        </script>
+</body>
+
+</html>

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/review.dart';
+import '../models/insight_result.dart'; // Import added
 import '../services/store_service.dart';
 import '../services/gemini_service.dart';
 
@@ -9,16 +10,16 @@ class ReviewProvider with ChangeNotifier {
 
   List<Review> _appleReviews = [];
   List<Review> _googleReviews = [];
-  String _appleInsights = '';
-  String _googleInsights = '';
+  InsightResult _appleInsights = InsightResult.empty(); // Updated type
+  InsightResult _googleInsights = InsightResult.empty(); // Updated type
 
   bool _isLoading = false;
   String? _error;
 
   List<Review> get appleReviews => _appleReviews;
   List<Review> get googleReviews => _googleReviews;
-  String get appleInsights => _appleInsights;
-  String get googleInsights => _googleInsights;
+  InsightResult get appleInsights => _appleInsights; // Updated getter type
+  InsightResult get googleInsights => _googleInsights; // Updated getter type
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -32,8 +33,8 @@ class ReviewProvider with ChangeNotifier {
   void clearReviews() {
     _appleReviews = [];
     _googleReviews = [];
-    _appleInsights = '';
-    _googleInsights = '';
+    _appleInsights = InsightResult.empty();
+    _googleInsights = InsightResult.empty();
     _error = null;
     notifyListeners();
   }

@@ -1,24 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'providers/review_provider.dart';
-import 'ui/home_screen.dart';
+import 'ui/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // TODO: Add Firebase configuration
-  // try {
-  //   await Firebase.initializeApp(
-  //     options: const FirebaseOptions(
-  //       apiKey: "YOUR_API_KEY",
-  //       appId: "YOUR_APP_ID",
-  //       messagingSenderId: "YOUR_SENDER_ID",
-  //       projectId: "YOUR_PROJECT_ID",
-  //     ),
-  //   );
-  // } catch (e) {
-  //   print("Firebase initialization failed (expected if not configured): $e");
-  // }
-
   runApp(const MyApp());
 }
 
@@ -31,11 +18,14 @@ class MyApp extends StatelessWidget {
       providers: [ChangeNotifierProvider(create: (_) => ReviewProvider())],
       child: MaterialApp(
         title: 'Review Insights',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F172A)),
+          textTheme: GoogleFonts.interTextTheme(),
+          scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         ),
-        home: const HomeScreen(),
+        home: const DashboardScreen(appName: "Visana App"),
       ),
     );
   }

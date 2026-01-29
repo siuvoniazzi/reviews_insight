@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="de">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Modern App Review Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Material+Icons+Round&amp;display=swap"
+        rel="stylesheet" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0F172A",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .material-icons-round {
+            vertical-align: middle;
+            font-size: 1.25rem;
+        }
+
+        /* Modal Transitions */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: visible !important;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside
+        class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hidden lg:flex flex-col sticky top-0 h-screen">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                <span class="material-icons-round">analytics</span>
+            </div>
+            <span class="font-bold text-xl tracking-tight">ReviewAI</span>
+        </div>
+        <nav class="flex-1 px-4 space-y-1 mt-4">
+            <a class="flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-primary dark:text-white rounded-xl font-medium cursor-pointer"
+                id="nav-dashboard">
+                <span class="material-icons-round">dashboard</span> Dashboard
+            </a>
+            <!-- App Selection in Sidebar -->
+            <div class="mt-8 px-4">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Apps</p>
+                <div class="space-y-1">
+                    <button id="btn-select-app-a"
+                        class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span id="label-app-a-name">App A</span>
+                    </button>
+                    <button id="btn-select-app-b"
+                        class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                        <span id="label-app-b-name">App B</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div class="p-6 border-t border-slate-200 dark:border-slate-800">
+            <button id="btn-open-settings"
+                class="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <span class="text-sm font-medium">Einstellungen</span>
+                <span class="material-icons-round text-slate-400">settings</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+        <header
+            class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between">
+            <h1 class="text-lg font-semibold" id="header-title">Analyse: -</h1>
+            <div class="flex items-center gap-4">
+                <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                    onclick="document.documentElement.classList.toggle('dark')">
+                    <span class="material-icons-round dark:hidden">dark_mode</span>
+                    <span class="material-icons-round hidden dark:block">light_mode</span>
+                </button>
+                <button id="btn-header-settings"
+                    class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-slate-800 transition-colors">
+                    <span class="material-icons-round text-base">settings</span>
+                    <span class="hidden sm:inline">Einstellungen</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8 max-w-7xl mx-auto space-y-8">
+            <section>
+                <div class="flex items-baseline gap-3 mb-2">
+                    <h2 class="text-3xl font-bold tracking-tight">Gemini Insights Comparison</h2>
+                    <span class="text-slate-500 text-sm font-normal" id="last-updated">Aktualisiert: nie</span>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 max-w-3xl">Detaillierte KI-gestützte Analyse der
+                    App-Store-Bewertungen.</p>
+            </section>
+
+            <div id="loading-indicator" class="hidden flex justify-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+
+            <div id="dashboard-content" class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- Apple Card -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                    <div
+                        class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                        <div class="flex items-center gap-3">
+                            <img alt="App Store Icon" class="w-6 h-6"
+                                src="https://upload.wikimedia.org/wikipedia/commons/6/64/Apple_App_Store_icon_2017.png" />
+                            <h3 class="font-bold text-lg">Apple App Store</h3>
+                        </div>
+                        <span id="apple-verdict-badge"
+                            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                            <!-- JS will inject content -->
+                        </span>
+                    </div>
+                    <div class="p-8 space-y-8">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment
+                                Übersicht</h4>
+                            <p id="apple-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                Noch keine Analyse vorhanden.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <h4
+                                    class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_up</span> POSITIV
+                                </h4>
+                                <ul id="apple-pros" class="space-y-3 text-sm"></ul>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_down</span> NEGATIV
+                                </h4>
+                                <ul id="apple-cons" class="space-y-3 text-sm"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Card -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                    <div
+                        class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+                        <div class="flex items-center gap-3">
+                            <img alt="Google Play Icon" class="w-6 h-6"
+                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Google_Play_2022_logo.svg/512px-Google_Play_2022_logo.svg.png" />
+                            <h3 class="font-bold text-lg">Google Play Store</h3>
+                        </div>
+                        <span id="google-verdict-badge"
+                            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                            <!-- JS will inject content -->
+                        </span>
+                    </div>
+                    <div class="p-8 space-y-8">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment
+                                Übersicht</h4>
+                            <p id="google-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                Noch keine Analyse vorhanden.
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <h4
+                                    class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_up</span> POSITIV
+                                </h4>
+                                <ul id="google-pros" class="space-y-3 text-sm"></ul>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                                    <span class="material-icons-round">thumb_down</span> NEGATIV
+                                </h4>
+                                <ul id="google-cons" class="space-y-3 text-sm"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="space-y-6">
+                <div class="flex items-center gap-3">
+                    <span class="material-icons-round text-amber-500">lightbulb</span>
+                    <h3 class="text-xl font-bold">Empfohlene Massnahmen</h3>
+                </div>
+                <div id="advice-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Advice cards injected here -->
+                </div>
+            </section>
+
+            <section class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold">Individuelle Reviews (Max 5)</h3>
+                </div>
+                <div class="space-y-4">
+                    <div id="reviews-container" class="space-y-4">
+                        <!-- Details Review List injected here -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Configuration Modal -->
+    <div id="config-modal"
+        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+        <div
+            class="modal-container bg-white dark:bg-slate-800 w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-2xl font-bold">Einstellungen</p>
+                    <div class="modal-close cursor-pointer z-50" id="btn-close-config">
+                        <span class="material-icons-round">close</span>
+                    </div>
+                </div>
+
+                <div class="my-5">
+                    <form id="config-form" class="space-y-4">
+                        <!-- App Selection Tabs -->
+                        <div class="flex space-x-2 bg-slate-100 p-1 rounded-lg">
+                            <button type="button" id="tab-app-a"
+                                class="flex-1 py-1 px-3 rounded-md bg-white shadow-sm text-sm font-medium transition-all">App
+                                A</button>
+                            <button type="button" id="tab-app-b"
+                                class="flex-1 py-1 px-3 rounded-md text-slate-500 hover:text-slate-700 text-sm font-medium transition-all">App
+                                B</button>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">App Name</label>
+                            <input type="text" id="input-app-name"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Apple App
+                                ID</label>
+                            <input type="text" id="input-app-id"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Google Play
+                                CSV</label>
+                            <input type="file" id="input-google-csv" accept=".csv"
+                                class="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p id="google-file-status" class="text-xs text-slate-500 mt-1"></p>
+                        </div>
+
+                        <hr class="border-slate-200 dark:border-slate-700">
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Gemini API
+                                Key</label>
+                            <input type="password" id="input-api-key"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
+                        </div>
+
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit"
+                                class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800">
+                                Speichern & Analysieren
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
