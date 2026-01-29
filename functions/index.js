@@ -106,7 +106,7 @@ const generateInsightsInternal = async (reviews) => {
     if (!geminiApiKey.value()) return "Gemini API Key missing.";
 
     const genAI = new GoogleGenerativeAI(geminiApiKey.value());
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `Analyze these reviews and provide: 1. Sentiment Summary. 2. Top 3 Pros. 3. Top 3 Cons. 4. Actionable Advice. \n\nReviews:\n${reviews.map(r => `- [${r.source}] ${r.rating}/5: ${r.content}`).join("\n")}`;
 

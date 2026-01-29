@@ -9,10 +9,7 @@ class GeminiService {
   Future<String> generateInsights(List<Review> reviews) async {
     if (reviews.isEmpty) return "No reviews to analyze.";
 
-    final model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
-      apiKey: apiKey,
-    );
+    final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
 
     final prompt = StringBuffer();
     prompt.writeln(

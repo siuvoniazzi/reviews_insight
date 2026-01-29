@@ -68,35 +68,92 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                if (provider.appleReviews.isNotEmpty) ...[
-                  _buildSectionHeader(
-                    context,
-                    "Apple App Store Insights",
-                    Icons.apple,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInsightBox(
-                    context,
-                    provider.appleInsights,
-                    Colors.grey.shade100,
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth > 900;
+                    final hasApple = provider.appleReviews.isNotEmpty;
+                    final hasGoogle = provider.googleReviews.isNotEmpty;
 
-                if (provider.googleReviews.isNotEmpty) ...[
-                  _buildSectionHeader(
-                    context,
-                    "Google Play Store Insights",
-                    Icons.android,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInsightBox(
-                    context,
-                    provider.googleInsights,
-                    Colors.green.shade50,
-                  ),
-                  const SizedBox(height: 32),
-                ],
+                    if (isWide && hasApple && hasGoogle) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionHeader(
+                                  context,
+                                  "Apple App Store Insights ${_getDateRange(provider.appleReviews)}",
+                                  Icons.apple,
+                                ),
+                                const SizedBox(height: 8),
+                                _buildInsightBox(
+                                  context,
+                                  provider.appleInsights,
+                                  Colors.grey.shade100,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionHeader(
+                                  context,
+                                  "Google Play Store Insights ${_getDateRange(provider.googleReviews)}",
+                                  Icons.android,
+                                ),
+                                const SizedBox(height: 8),
+                                _buildInsightBox(
+                                  context,
+                                  provider.googleInsights,
+                                  Colors.green.shade50,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (hasApple) ...[
+                            _buildSectionHeader(
+                              context,
+                              "Apple App Store Insights ${_getDateRange(provider.appleReviews)}",
+                              Icons.apple,
+                            ),
+                            const SizedBox(height: 8),
+                            _buildInsightBox(
+                              context,
+                              provider.appleInsights,
+                              Colors.grey.shade100,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                          if (hasGoogle) ...[
+                            _buildSectionHeader(
+                              context,
+                              "Google Play Store Insights ${_getDateRange(provider.googleReviews)}",
+                              Icons.android,
+                            ),
+                            const SizedBox(height: 8),
+                            _buildInsightBox(
+                              context,
+                              provider.googleInsights,
+                              Colors.green.shade50,
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+                        ],
+                      );
+                    }
+                  },
+                ),
 
                 const Divider(thickness: 2),
                 const SizedBox(height: 32),
@@ -140,6 +197,29 @@ class DashboardScreen extends StatelessWidget {
         Text(title, style: Theme.of(context).textTheme.titleLarge),
       ],
     );
+  }
+
+  String _getDateRange(List<dynamic> reviews) {
+    if (reviews.isEmpty) return "";
+    DateTime? minDate;
+    DateTime? maxDate;
+
+    for (var review in reviews) {
+      if (minDate == null || review.date.isBefore(minDate)) {
+        minDate = review.date;
+      }
+      if (maxDate == null || review.date.isAfter(maxDate)) {
+        maxDate = review.date;
+      }
+    }
+
+    // Should not happen if list is not empty
+    if (minDate == null || maxDate == null) return "";
+
+    final minStr = "${minDate.day}.${minDate.month}.${minDate.year}";
+    final maxStr = "${maxDate.day}.${maxDate.month}.${maxDate.year}";
+
+    return "($minStr - $maxStr)";
   }
 
   Widget _buildInsightBox(BuildContext context, String insights, Color color) {

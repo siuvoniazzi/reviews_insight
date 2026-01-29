@@ -285,50 +285,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      _saveSettings(); // Ensure checks functionality
-
-                      final provider = Provider.of<ReviewProvider>(
-                        context,
-                        listen: false,
-                      );
-                      provider.setApiKey(_apiKeyController.text);
-                      provider.clearReviews(); // Clear previous
-
-                      // 1. Fetch Apple Reviews
-                      await provider.fetchAppleReviews(_appIdController.text);
-
-                      // 2. Set Google Reviews if available
-                      final currentGoogleCsvs = _isAppASelected
-                          ? _appAGoogleCsvs
-                          : _appBGoogleCsvs;
-                      if (currentGoogleCsvs != null) {
-                        await provider.setGoogleReviewsFromBytes(
-                          currentGoogleCsvs,
-                        );
-                      }
-
-                      // 3. Analyze
-                      await provider.analyze();
-
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DashboardScreen(
-                              appName: _isAppASelected ? _appAName : _appBName,
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
+                  onPressed: _isLoading ? null : _performAnalysis,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     textStyle: const TextStyle(fontSize: 18),
                   ),
-                  child: const Text("Daten Laden & Analysieren"),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : const Text("Daten Laden & Analysieren"),
                 ),
               ],
             ),
