@@ -121,9 +121,7 @@
                     App-Store-Bewertungen.</p>
             </section>
 
-            <div id="loading-indicator" class="hidden flex justify-center py-12">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
+
 
             <div id="dashboard-content" class="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 <!-- Apple Card -->
@@ -135,33 +133,17 @@
                             <span class="text-2xl">🍎</span>
                             <h3 class="font-bold text-lg">Apple App Store</h3>
                         </div>
-                        <span id="apple-verdict-badge"
-                            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1"></span>
-                    </div>
-                    <div class="p-8 space-y-8">
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment
-                                Übersicht</h4>
-                            <p id="apple-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                Noch keine Analyse vorhanden.
-                            </p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-4">
-                                <h4
-                                    class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                                    <span class="material-icons-round">thumb_up</span> POSITIV
-                                </h4>
-                                <ul id="apple-pros" class="space-y-3 text-sm"></ul>
-                            </div>
-                            <div class="space-y-4">
-                                <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
-                                    <span class="material-icons-round">thumb_down</span> NEGATIV
-                                </h4>
-                                <ul id="apple-cons" class="space-y-3 text-sm"></ul>
-                            </div>
+                        <div class="flex items-center gap-4">
+                            <span id="apple-verdict-badge"
+                                class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1"></span>
+                            <button id="btn-fetch-apple"
+                                class="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-xs font-bold transition-colors">
+                                <span class="material-icons-round text-sm">download</span>
+                                Reviews abrufen
+                            </button>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Google Card -->
@@ -173,45 +155,161 @@
                             <span class="text-2xl">▶️</span>
                             <h3 class="font-bold text-lg">Google Play Store</h3>
                         </div>
-                        <span id="google-verdict-badge"
-                            class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1"></span>
-                    </div>
-                    <div class="p-8 space-y-8">
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment
-                                Übersicht</h4>
-                            <p id="google-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                Noch keine Analyse vorhanden.
-                            </p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-4">
-                                <h4
-                                    class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                                    <span class="material-icons-round">thumb_up</span> POSITIV
-                                </h4>
-                                <ul id="google-pros" class="space-y-3 text-sm"></ul>
-                            </div>
-                            <div class="space-y-4">
-                                <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
-                                    <span class="material-icons-round">thumb_down</span> NEGATIV
-                                </h4>
-                                <ul id="google-cons" class="space-y-3 text-sm"></ul>
-                            </div>
+                        <div class="flex items-center gap-4">
+                            <span id="google-verdict-badge"
+                                class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1"></span>
+                            <input type="file" id="input-google-csv-card" accept=".csv" multiple class="hidden">
+                            <button id="btn-upload-google"
+                                class="flex items-center gap-2 px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-xs font-bold transition-colors">
+                                <span class="material-icons-round text-sm">upload_file</span>
+                                CSV Upload
+                            </button>
                         </div>
                     </div>
+
                 </div>
             </div>
 
-            <section class="space-y-6">
-                <div class="flex items-center gap-3">
-                    <span class="material-icons-round text-amber-500">lightbulb</span>
-                    <h3 class="text-xl font-bold">Empfohlene Massnahmen</h3>
+            <!-- Analysis Date Range Selector (shown after data is loaded) -->
+            <section id="analysis-date-controls"
+                class="hidden p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl mb-6 border border-slate-200 dark:border-slate-700">
+                <div class="flex flex-col md:flex-row md:items-end gap-6">
+                    <div class="flex-grow">
+                        <h3 class="font-bold mb-4 flex items-center gap-2">
+                            <span class="material-icons-round text-slate-500">date_range</span>
+                            Analyse-Zeitraum
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Von</label>
+                                <input type="date" id="analysis-date-from"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm dark:bg-slate-700 dark:border-slate-600 p-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Bis</label>
+                                <input type="date" id="analysis-date-to"
+                                    class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm dark:bg-slate-700 dark:border-slate-600 p-2">
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <div id="stats-apple"
+                                class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <span class="text-lg">🍎</span> <span class="font-bold">-</span> Ø
+                            </div>
+                            <div id="stats-google"
+                                class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <span class="text-lg">▶️</span> <span class="font-bold">-</span> Ø
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:w-1/3">
+                        <div id="date-range-warnings"
+                            class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg hidden">
+                        </div>
+                    </div>
                 </div>
-                <div id="advice-container" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+            </section>
+
+            <!-- Analysis Mode Selector (shown after data is loaded) -->
+            <section id="analysis-mode-selector" class="hidden">
+                <h3 class="text-xl font-bold mb-4">Analyse-Modus wählen:</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <button id="btn-insights-mode"
+                        class="p-6 border-2 border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl transition-all text-left">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-3xl">📊</span>
+                            <h4 class="text-lg font-bold">Insights erstellen</h4>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400">Sentiment-Analyse, Pros/Cons, Empfehlungen
+                        </p>
+                    </button>
+                    <button id="btn-topics-mode"
+                        class="p-6 border-2 border-slate-300 dark:border-slate-700 hover:border-green-500 dark:hover:border-green-400 rounded-2xl transition-all text-left">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-3xl">🏷️</span>
+                            <h4 class="text-lg font-bold">Nach Themen gruppieren</h4>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400">Reviews nach Topics mit Zusammenfassungen
+                        </p>
+                    </button>
+                </div>
+            </section>
+
+            <div id="loading-indicator" class="hidden flex justify-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+
+            <!-- Analysis Results Container (Newly Moved) -->
+            <section id="analysis-results-container" class="hidden grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                <!-- Apple Results -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8">
+                    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <span class="text-2xl">🍎</span>
+                        <h3 class="font-bold text-lg">Apple Insights</h3>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment Übersicht
+                        </h4>
+                        <p id="apple-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                            Noch keine Analyse vorhanden.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <h4
+                                class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                <span class="material-icons-round">thumb_up</span> POSITIV
+                            </h4>
+                            <ul id="apple-pros" class="space-y-3 text-sm"></ul>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                                <span class="material-icons-round">thumb_down</span> NEGATIV
+                            </h4>
+                            <ul id="apple-cons" class="space-y-3 text-sm"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Results -->
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8">
+                    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <span class="text-2xl">▶️</span>
+                        <h3 class="font-bold text-lg">Google Insights</h3>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment Übersicht
+                        </h4>
+                        <p id="google-sentiment" class="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                            Noch keine Analyse vorhanden.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <h4
+                                class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                <span class="material-icons-round">thumb_up</span> POSITIV
+                            </h4>
+                            <ul id="google-pros" class="space-y-3 text-sm"></ul>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                                <span class="material-icons-round">thumb_down</span> NEGATIV
+                            </h4>
+                            <ul id="google-cons" class="space-y-3 text-sm"></ul>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section class="space-y-6">
+
+                <div id="advice-container" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+            </section>
+
+            <section id="reviews-section" class="space-y-6 hidden">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xl font-bold">Individuelle Reviews</h3>
                 </div>
@@ -257,31 +355,9 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600">
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Google Play
-                                CSV</label>
-                            <input type="file" id="input-google-csv" accept=".csv" multiple
-                                class="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                            <p id="google-file-status" class="text-xs text-slate-500 mt-1"></p>
-                        </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Zeitraum
-                                der Analyse</label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs text-slate-500 mb-1">Von</label>
-                                    <input type="date" id="input-date-from"
-                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm dark:bg-slate-700 dark:border-slate-600">
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-slate-500 mb-1">Bis</label>
-                                    <input type="date" id="input-date-to"
-                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm dark:bg-slate-700 dark:border-slate-600">
-                                </div>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-1">Leer lassen für alle verfügbaren Reviews</p>
-                        </div>
+
+
 
                         <hr class="border-slate-200 dark:border-slate-700">
 
@@ -295,7 +371,7 @@
                         <div class="pt-4 flex justify-end">
                             <button type="submit"
                                 class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800">
-                                Speichern & Analysieren
+                                Speichern
                             </button>
                         </div>
                     </form>
@@ -333,7 +409,8 @@
                             googleFiles: [], // Changed from googleFile to array
                             appleReviews: [],
                             googleReviews: [],
-                            insights: { apple: null, google: null }
+                            insights: { apple: null, google: null },
+                            reviewsLoaded: false
                         },
                         app_b: {
                             name: localStorage.getItem('appB_name') || 'myPoints',
@@ -343,7 +420,8 @@
                             googleFiles: [], // Changed from googleFile to array
                             appleReviews: [],
                             googleReviews: [],
-                            insights: { apple: null, google: null }
+                            insights: { apple: null, google: null },
+                            reviewsLoaded: false
                         }
                     }
                 };
@@ -386,16 +464,7 @@
                     const app = state.apps[configEditingApp];
                     document.getElementById('input-app-name').value = app.name;
                     document.getElementById('input-app-id').value = app.id;
-                    document.getElementById('input-date-from').value = app.dateFrom || '';
-                    document.getElementById('input-date-to').value = app.dateTo || '';
                     document.getElementById('input-api-key').value = state.apiKey;
-
-                    const status = document.getElementById('google-file-status');
-                    if (app.googleFiles && app.googleFiles.length > 0) {
-                        status.innerText = `${app.googleFiles.length} Datei(en) ausgewählt: ${app.googleFiles.map(f => f.name).join(', ')}`;
-                    } else {
-                        status.innerText = "Keine Datei gewählt.";
-                    }
                 }
 
                 window.handleConfigSubmit = function (e) {
@@ -406,26 +475,12 @@
                     const app = state.apps[configEditingApp];
                     app.name = document.getElementById('input-app-name').value;
                     app.id = document.getElementById('input-app-id').value;
-                    app.dateFrom = document.getElementById('input-date-from').value;
-                    app.dateTo = document.getElementById('input-date-to').value;
-
-                    const fileInput = document.getElementById('input-google-csv');
-                    console.log('📁 File input check - files.length:', fileInput.files.length);
-                    if (fileInput.files.length > 0) {
-                        app.googleFiles = Array.from(fileInput.files);
-                        console.log('✅ Google CSV files selected and stored:', app.googleFiles.map(f => f.name));
-                        console.log('📊 app.googleFiles array:', app.googleFiles);
-                    } else {
-                        console.warn('⚠️ No files selected from input!');
-                    }
 
                     console.log('Config saved:', {
                         editingApp: configEditingApp,
                         activeApp: state.activeAppId,
                         appName: app.name,
                         appId: app.id,
-                        dateFrom: app.dateFrom,
-                        dateTo: app.dateTo,
                         hasApiKey: !!state.apiKey
                     });
 
@@ -433,18 +488,9 @@
                     const appPrefix = configEditingApp === 'app_a' ? 'A' : 'B';
                     localStorage.setItem(`app${appPrefix}_name`, app.name);
                     localStorage.setItem(`app${appPrefix}_id`, app.id);
-                    localStorage.setItem(`app${appPrefix}_dateFrom`, app.dateFrom);
-                    localStorage.setItem(`app${appPrefix}_dateTo`, app.dateTo);
 
                     window.toggleModal(false);
-
-                    if (state.activeAppId === configEditingApp) {
-                        console.log('Loading data for active app...');
-                        loadData(true); // Force refresh when settings change
-                    } else {
-                        console.log('Just rendering (not loading data for inactive app)');
-                        render();
-                    }
+                    render();
                 }
 
                 // Apple Reviews
@@ -641,95 +687,305 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                     return filtered;
                 }
 
-                // Data Loading
-                async function loadData(forceRefresh = false) {
-                    console.log('=== LOAD DATA START ===', forceRefresh ? '(FORCE REFRESH)' : '(using cache if available)');
+                // --- DATA LOADING HANDLERS ---
+
+                async function handleFetchApple() {
                     const currentApp = state.apps[state.activeAppId];
-                    console.log('Current app:', { id: state.activeAppId, name: currentApp.name, appId: currentApp.id, dateRange: `${currentApp.dateFrom || 'all'} - ${currentApp.dateTo || 'all'}` });
+                    if (!currentApp.id) {
+                        alert('⚠️ Bitte erst Apple App ID in den Einstellungen konfigurieren!');
+                        window.toggleModal(true);
+                        return;
+                    }
+
+                    const btn = document.getElementById('btn-fetch-apple');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600"></div> Laden...`;
+                    btn.disabled = true;
+
+                    try {
+                        console.log('Fetching Apple reviews...');
+                        currentApp.appleReviews = await fetchAppleReviews(currentApp.id);
+                        console.log('Apple reviews fetched:', currentApp.appleReviews.length);
+
+                        // Update badge
+                        document.getElementById('apple-verdict-badge').innerHTML =
+                            `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">${currentApp.appleReviews.length} Reviews</span>`;
+
+                        // Check if we can enable analysis controls
+                        updateAnalysisControlsVisibility();
+
+                        render(); // Update reviews list immediately
+                        alert(`✅ ${currentApp.appleReviews.length} Apple Reviews geladen!`);
+                    } catch (error) {
+                        console.error('Error fetching Apple reviews:', error);
+                        alert('Fehler beim Laden der Apple Reviews: ' + error.message);
+                    } finally {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                }
+
+                function handleUploadGoogle() {
+                    document.getElementById('input-google-csv-card').click();
+                }
+
+                async function handleGoogleFileSelect(event) {
+                    const files = event.target.files;
+                    if (!files || files.length === 0) return;
+
+                    const currentApp = state.apps[state.activeAppId];
+                    const btn = document.getElementById('btn-upload-google');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600"></div> Laden...`;
+                    btn.disabled = true;
+
+                    try {
+                        console.log('Parsing Google CSV files...');
+                        currentApp.googleReviews = [];
+
+                        for (const file of files) {
+                            console.log(`  📄 Parsing ${file.name}...`);
+                            const reviews = await parseGoogleCsv(file);
+                            console.log(`  ✅ Parsed ${reviews.length} reviews from ${file.name}`);
+                            currentApp.googleReviews.push(...reviews);
+                        }
+
+                        // Update badge
+                        document.getElementById('google-verdict-badge').innerHTML =
+                            `<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">${currentApp.googleReviews.length} Reviews</span>`;
+
+                        // Check if we can enable analysis controls
+                        updateAnalysisControlsVisibility();
+
+                        render(); // Update reviews list immediately
+                        alert(`✅ ${currentApp.googleReviews.length} Google Reviews geladen!`);
+                    } catch (error) {
+                        console.error('Error parsing Google CSV:', error);
+                        alert('Fehler beim Laden der CSV Datei: ' + error.message);
+                    } finally {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        // Reset input so same file can be selected again if needed
+                        event.target.value = '';
+                    }
+                }
+
+                function updateAnalysisControlsVisibility() {
+                    const currentApp = state.apps[state.activeAppId];
+                    const hasReviews = (currentApp.appleReviews && currentApp.appleReviews.length > 0) ||
+                        (currentApp.googleReviews && currentApp.googleReviews.length > 0);
+
+                    const controls = document.getElementById('analysis-date-controls');
+                    const modeSelector = document.getElementById('analysis-mode-selector');
+
+                    if (hasReviews) {
+                        controls.classList.remove('hidden');
+                        modeSelector.classList.remove('hidden');
+                        currentApp.reviewsLoaded = true; // Flag for legacy checks
+
+                        // Hide results if data changes (forcing re-analysis)
+                        document.getElementById('analysis-results-container').classList.add('hidden');
+                    }
+                }
+
+                // Helper to get date date ranges for validation
+                function getAvailableDateRange(reviews) {
+                    if (!reviews || reviews.length === 0) return null;
+                    const dates = reviews.map(r => r.date).sort((a, b) => a - b);
+                    return {
+                        min: dates[0],
+                        max: dates[dates.length - 1]
+                    };
+                }
+
+                // Helper to validate selected range against available data
+                function validateDateRange(selectedFrom, selectedTo) {
+                    const currentApp = state.apps[state.activeAppId];
+                    const warnings = [];
+
+                    if (selectedFrom && selectedTo && selectedFrom > selectedTo) {
+                        warnings.push("⚠️ 'Von' Datum darf nicht nach 'Bis' Datum sein.");
+                    }
+
+                    // Check Apple Range
+                    if (currentApp.appleReviews && currentApp.appleReviews.length > 0) {
+                        const appleRange = getAvailableDateRange(currentApp.appleReviews);
+                        if (appleRange) {
+                            if (selectedFrom && new Date(selectedFrom) < appleRange.min) {
+                                warnings.push(`⚠️ Apple Reviews erst verfügbar ab ${appleRange.min.toLocaleDateString('de-CH')}.`);
+                            }
+                            if (selectedTo && new Date(selectedTo) > appleRange.max) {
+                                warnings.push(`⚠️ Apple Reviews nur verfügbar bis ${appleRange.max.toLocaleDateString('de-CH')}.`);
+                            }
+                        }
+                    }
+
+                    // Check Google Range
+                    if (currentApp.googleReviews && currentApp.googleReviews.length > 0) {
+                        const googleRange = getAvailableDateRange(currentApp.googleReviews);
+                        if (googleRange) {
+                            if (selectedFrom && new Date(selectedFrom) < googleRange.min) {
+                                warnings.push(`⚠️ Google Reviews erst verfügbar ab ${googleRange.min.toLocaleDateString('de-CH')}.`);
+                            }
+                            if (selectedTo && new Date(selectedTo) > googleRange.max) {
+                                warnings.push(`⚠️ Google Reviews nur verfügbar bis ${googleRange.max.toLocaleDateString('de-CH')}.`);
+                            }
+                        }
+                    }
+
+                    const warningContainer = document.getElementById('date-range-warnings');
+                    if (warnings.length > 0) {
+                        warningContainer.innerHTML = warnings.join('<br>');
+                        warningContainer.classList.remove('hidden');
+                    } else {
+                        warningContainer.classList.add('hidden');
+                    }
+                }
+
+
+
+                // Analysis Functions - called after data is loaded
+                // Analysis Functions - called after data is loaded
+                async function generateInsightsMode() {
+                    const currentApp = state.apps[state.activeAppId];
+
+                    if (!currentApp.reviewsLoaded) {
+                        alert('⚠️ Bitte laden Sie zuerst die Daten!');
+                        return;
+                    }
+
+                    if (!state.apiKey) {
+                        alert('⚠️ Bitte konfigurieren Sie zuerst Ihren Gemini API Key!');
+                        return;
+                    }
+
+                    // Get Date Range
+                    const dateFrom = document.getElementById('analysis-date-from').value ? new Date(document.getElementById('analysis-date-from').value) : null;
+                    const dateTo = document.getElementById('analysis-date-to').value ? new Date(document.getElementById('analysis-date-to').value) : null;
+
+                    // Filter Reviews
+                    currentApp.filteredApple = filterReviewsByDate(currentApp.appleReviews, dateFrom, dateTo);
+                    currentApp.filteredGoogle = filterReviewsByDate(currentApp.googleReviews, dateFrom, dateTo);
+
+                    if (currentApp.filteredApple.length === 0 && currentApp.filteredGoogle.length === 0) {
+                        alert('⚠️ Keine Reviews im gewählten Zeitraum!');
+                        return;
+                    }
 
                     document.getElementById('loading-indicator').classList.remove('hidden');
                     document.getElementById('dashboard-content').classList.add('opacity-50');
 
                     try {
-                        // Check if we already have data cached (unless force refresh)
-                        const hasCachedApple = currentApp.appleReviews.length > 0;
-                        const hasCachedGoogle = currentApp.googleReviews.length > 0;
-                        const hasCachedInsights = currentApp.insights.apple !== null || currentApp.insights.google !== null;
-
-                        if (!forceRefresh && hasCachedInsights) {
-                            console.log('Using cached data, skipping fetch');
-                            render();
-                            document.getElementById('loading-indicator').classList.add('hidden');
-                            document.getElementById('dashboard-content').classList.remove('opacity-50');
-                            return;
-                        }
-
-                        if (currentApp.id && (forceRefresh || !hasCachedApple)) {
-                            console.log('Fetching Apple reviews...');
-                            currentApp.appleReviews = await fetchAppleReviews(currentApp.id);
-                            console.log('Apple reviews fetched:', currentApp.appleReviews.length);
-                        } else if (hasCachedApple) {
-                            console.log('Using cached Apple reviews:', currentApp.appleReviews.length);
-                        }
-
-                        console.log('🔍 Checking Google files - googleFiles:', currentApp.googleFiles, 'length:', currentApp.googleFiles?.length, 'forceRefresh:', forceRefresh, 'hasCachedGoogle:', hasCachedGoogle);
-
-                        if (currentApp.googleFiles && currentApp.googleFiles.length > 0 && (forceRefresh || !hasCachedGoogle)) {
-                            console.log('📄 Parsing Google CSV files...');
-                            currentApp.googleReviews = [];
-                            for (const file of currentApp.googleFiles) {
-                                console.log(`  📄 Parsing ${file.name}...`);
-                                const reviews = await parseGoogleCsv(file);
-                                console.log(`  ✅ Parsed ${reviews.length} reviews from ${file.name}`);
-                                currentApp.googleReviews.push(...reviews);
-                            }
-                            console.log('✅ Google reviews parsed (total from all files):', currentApp.googleReviews.length);
-                        } else if (hasCachedGoogle) {
-                            console.log('📦 Using cached Google reviews:', currentApp.googleReviews.length);
+                        // Generate insights for filtered reviews
+                        if (currentApp.filteredApple && currentApp.filteredApple.length > 0) {
+                            console.log('Generating Apple insights...');
+                            currentApp.insights.apple = await generateInsights(currentApp.filteredApple, state.apiKey);
                         } else {
-                            console.error('❌ NO Google CSV files to parse!');
-                            console.log('  googleFiles:', currentApp.googleFiles);
-                            console.log('  googleFiles.length:', currentApp.googleFiles?.length);
-                            console.log('  hasCachedGoogle:', hasCachedGoogle);
-                            console.log('  forceRefresh:', forceRefresh);
+                            currentApp.insights.apple = null;
                         }
 
-                        // Filter reviews by date range before sending to LLM
-                        const filteredApple = filterReviewsByDate(currentApp.appleReviews, currentApp.dateFrom, currentApp.dateTo);
-                        const filteredGoogle = filterReviewsByDate(currentApp.googleReviews, currentApp.dateFrom, currentApp.dateTo);
-
-                        console.log('Filtered reviews:', { apple: filteredApple.length, google: filteredGoogle.length });
-
-                        if (state.apiKey) {
-                            if (filteredApple.length > 0) {
-                                console.log('Generating Apple insights...');
-                                currentApp.insights.apple = await generateInsights(filteredApple, state.apiKey);
-                                console.log('Apple insights:', currentApp.insights.apple);
-                            } else {
-                                currentApp.insights.apple = null;
-                            }
-                            if (filteredGoogle.length > 0) {
-                                console.log('Generating Google insights...');
-                                currentApp.insights.google = await generateInsights(filteredGoogle, state.apiKey);
-                                console.log('Google insights:', currentApp.insights.google);
-                            } else {
-                                currentApp.insights.google = null;
-                            }
+                        if (currentApp.filteredGoogle && currentApp.filteredGoogle.length > 0) {
+                            console.log('Generating Google insights...');
+                            currentApp.insights.google = await generateInsights(currentApp.filteredGoogle, state.apiKey);
                         } else {
-                            console.warn('No API key - skipping insights generation');
+                            currentApp.insights.google = null;
                         }
 
-                        console.log('Rendering results...');
+                        // Show Insights
+                        document.getElementById('analysis-results-container').classList.remove('hidden'); // Show New Container
                         render();
-                        console.log('=== LOAD DATA COMPLETE ===');
                     } catch (error) {
-                        console.error('ERROR during loadData:', error);
-                        alert('Fehler beim Laden der Daten: ' + error.message);
+                        console.error('Error generating insights:', error);
+                        alert('Fehler bei der Analyse: ' + error.message);
                     } finally {
                         document.getElementById('loading-indicator').classList.add('hidden');
                         document.getElementById('dashboard-content').classList.remove('opacity-50');
-                        document.getElementById('last-updated').innerText = `Aktualisiert: ${new Date().toLocaleTimeString()}`;
                     }
+                }
+
+                async function generateTopicsMode() {
+                    const currentApp = state.apps[state.activeAppId];
+
+                    if (!currentApp.reviewsLoaded) {
+                        alert('⚠️ Bitte laden Sie zuerst die Daten!');
+                        return;
+                    }
+
+                    if (!state.apiKey) {
+                        alert('⚠️ Bitte konfigurieren Sie zuerst Ihren Gemini API Key!');
+                        return;
+                    }
+
+                    // Get Date Range
+                    const dateFrom = document.getElementById('analysis-date-from').value ? new Date(document.getElementById('analysis-date-from').value) : null;
+                    const dateTo = document.getElementById('analysis-date-to').value ? new Date(document.getElementById('analysis-date-to').value) : null;
+
+                    // Filter Reviews
+                    currentApp.filteredApple = filterReviewsByDate(currentApp.appleReviews, dateFrom, dateTo);
+                    currentApp.filteredGoogle = filterReviewsByDate(currentApp.googleReviews, dateFrom, dateTo);
+
+                    document.getElementById('loading-indicator').classList.remove('hidden');
+                    document.getElementById('dashboard-content').classList.add('opacity-50');
+
+                    try {
+                        // Combine all reviews
+                        const allReviews = [
+                            ...(currentApp.filteredApple || []),
+                            ...(currentApp.filteredGoogle || [])
+                        ];
+
+                        if (allReviews.length === 0) {
+                            alert('⚠️ Keine Reviews zum Gruppieren!');
+                            return;
+                        }
+
+                        // Call Gemini for topic grouping
+                        const topicsResult = await generateTopicGrouping(allReviews, state.apiKey);
+                        currentApp.topics = topicsResult;
+
+                        // Show topics
+                        renderTopics();
+                    } catch (error) {
+                        console.error('Error generating topics:', error);
+                        alert('Fehler bei der Themen-Analyse: ' + error.message);
+                    } finally {
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        document.getElementById('dashboard-content').classList.remove('opacity-50');
+                    }
+                }
+
+                async function generateTopicGrouping(reviews, apiKey) {
+                    const { GoogleGenerativeAI } = await import('https://esm.run/@google/generative-ai');
+                    const genAI = new GoogleGenerativeAI(apiKey);
+                    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+                    const prompt = `Analysiere diese App-Reviews und gruppiere sie nach Themen.
+Antworte auf DEUTSCH.
+
+Reviews können in MEHREREN Themen erscheinen, wenn relevant.
+
+Gib JSON in exakt diesem Format zurück:
+{
+    "topics": [
+        {
+            "title": "Kurzer Titel des Themas (auf Deutsch)",
+            "review_indices": [Array von Review-Indices die zu diesem Thema gehören],
+            "summary": "Kurze Zusammenfassung des Inhalts (auf Deutsch)",
+            "sentiment": "POSITIVE|NEUTRAL|NEGATIVE",
+            "os_specificity": "iOS|Android|Both"
+        }
+    ]
+}
+
+Reviews:
+${reviews.map((r, i) => `[${i}] (${r.source.toUpperCase()}) ${r.rating}⭐ ${r.author}: ${r.content.substring(0, 200)}...`).join('\n\n')}
+
+Antworte nur mit validem JSON, kein Markdown.`;
+
+                    const result = await model.generateContent(prompt);
+                    const text = result.response.text();
+                    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    return JSON.parse(cleaned);
                 }
 
                 // Rendering
@@ -751,6 +1007,34 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                     } else {
                         dateRangeBadge.innerHTML = '';
                     }
+
+                    // Show/hide analysis mode selector
+                    const analysisModeSelector = document.getElementById('analysis-mode-selector');
+                    const hasInsights = app.insights.apple || app.insights.google;
+                    const hasTopics = app.topics;
+
+                    if (app.reviewsLoaded) {
+                        analysisModeSelector.classList.remove('hidden');
+                    } else {
+                        analysisModeSelector.classList.add('hidden');
+                    }
+
+                    // Update Review Count Badges (if no verdict yet)
+                    if (!app.insights.apple && app.appleReviews && app.appleReviews.length > 0) {
+                        document.getElementById('apple-verdict-badge').innerHTML =
+                            `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">${app.appleReviews.length} Reviews</span>`;
+                    } else if (!app.insights.apple) {
+                        document.getElementById('apple-verdict-badge').innerHTML = '';
+                    }
+
+                    if (!app.insights.google && app.googleReviews && app.googleReviews.length > 0) {
+                        document.getElementById('google-verdict-badge').innerHTML =
+                            `<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">${app.googleReviews.length} Reviews</span>`;
+                    } else if (!app.insights.google) {
+                        document.getElementById('google-verdict-badge').innerHTML = '';
+                    }
+
+                    // Show/hide reviews and advice based on state
 
                     const btnA = document.getElementById('btn-select-app-a');
                     const btnB = document.getElementById('btn-select-app-b');
@@ -811,7 +1095,27 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
 
                     document.getElementById('advice-container').innerHTML = adviceHTML;
 
-                    const recentReviews = [...app.appleReviews, ...app.googleReviews]
+                    // Filter Reviews for Display
+                    const dateFrom = document.getElementById('analysis-date-from').value ? new Date(document.getElementById('analysis-date-from').value) : null;
+                    const dateTo = document.getElementById('analysis-date-to').value ? new Date(document.getElementById('analysis-date-to').value) : null;
+
+                    const filteredApple = filterReviewsByDate(app.appleReviews, dateFrom, dateTo);
+                    const filteredGoogle = filterReviewsByDate(app.googleReviews, dateFrom, dateTo);
+
+                    // Update Stats
+                    const updateStat = (id, reviews) => {
+                        const el = document.getElementById(id);
+                        if (!reviews || reviews.length === 0) {
+                            el.innerHTML = `${id.includes('apple') ? '🍎' : '▶️'} <span class="font-bold">-</span> Ø`;
+                            return;
+                        }
+                        const avg = (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1);
+                        el.innerHTML = `${id.includes('apple') ? '🍎' : '▶️'} <span class="font-bold">${avg}</span> Ø (${reviews.length})`;
+                    };
+                    updateStat('stats-apple', filteredApple);
+                    updateStat('stats-google', filteredGoogle);
+
+                    const recentReviews = [...filteredApple, ...filteredGoogle]
                         .sort((a, b) => b.date - a.date);
 
                     document.getElementById('reviews-container').innerHTML = recentReviews.map(r => `
@@ -835,7 +1139,18 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
             </div>
             <p class="text-slate-700 dark:text-slate-300 leading-relaxed">${r.content.replace(/\n/g, '<br>')}</p>
         </div>
-    `).join('');
+                `).join('');
+
+                    // Reset header
+                    document.getElementById('reviews-container').previousElementSibling.querySelector('h3').innerText = "Individuelle Reviews";
+
+                    // Show/Hide Reviews Section
+                    const reviewsSection = document.getElementById('reviews-section');
+                    if (document.getElementById('reviews-container').innerHTML.trim() !== "") {
+                        reviewsSection.classList.remove('hidden');
+                    } else {
+                        reviewsSection.classList.add('hidden');
+                    }
                 }
 
                 function renderCard(platform, insights) {
@@ -861,14 +1176,93 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                     cons.innerHTML = insights.top_negative.map(p => `<li class="flex gap-2 text-slate-600 dark:text-slate-400"><span class="text-red-500">•</span> ${p}</li>`).join('');
                 }
 
-                // Initialize - runs when everything is loaded
-                document.getElementById('btn-select-app-a').onclick = () => { state.activeAppId = 'app_a'; render(); loadData(); };
-                document.getElementById('btn-select-app-b').onclick = () => { state.activeAppId = 'app_b'; render(); loadData(); };
+                function renderTopics() {
+                    console.log('Rendering topics...');
+                    const app = state.apps[state.activeAppId];
+                    const container = document.getElementById('reviews-container');
 
-                document.getElementById('btn-refresh').onclick = () => {
-                    console.log('Manual refresh requested');
-                    loadData(true); // Force refresh
+                    if (!app.topics || !app.topics.topics) {
+                        return;
+                    }
+
+                    // Show topics in reviews container
+                    let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+
+                    app.topics.topics.forEach(topic => {
+                        const sentimentColor = topic.sentiment === 'POSITIVE' ? 'emerald' : (topic.sentiment === 'NEGATIVE' ? 'red' : 'slate');
+                        const osBadge = topic.os_specificity === 'iOS' ? '🍎 iOS' : (topic.os_specificity === 'Android' ? '▶️ Android' : '📱 Beide');
+
+                        html += `
+                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-bold text-lg text-slate-900 dark:text-white">${topic.title}</h3>
+                                    <span class="px-2 py-1 bg-${sentimentColor}-100 dark:bg-${sentimentColor}-900/30 text-${sentimentColor}-700 dark:text-${sentimentColor}-400 text-xs rounded-full font-bold">
+                                        ${topic.sentiment}
+                                    </span>
+                                </div>
+                                <div class="mb-4 flex items-center gap-2">
+                                    <span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400">
+                                        ${osBadge}
+                                    </span>
+                                </div>
+                                <p class="text-slate-600 dark:text-slate-300 text-sm mb-4 leading-relaxed">
+                                    ${topic.summary}
+                                </p>
+                                <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Beispiel-Reviews:</h4>
+                                    ${topic.review_indices.slice(0, 3).map(idx => {
+                            // Find review in filtered lists
+                            // Note: Review indices in topics match the array passed to Gemini
+                            const allReviews = [...(app.filteredApple || []), ...(app.filteredGoogle || [])];
+                            const r = allReviews[idx];
+                            if (!r) return '';
+                            return `
+                                            <div class="text-xs p-2 bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-100 dark:border-slate-800/50">
+                                                <div class="flex justify-between mb-1 text-slate-400">
+                                                    <span>${r.author}</span>
+                                                    <span>${r.rating}⭐</span>
+                                                </div>
+                                                <p class="text-slate-700 dark:text-slate-300 italic">"${r.content.substring(0, 100)}${r.content.length > 100 ? '...' : ''}"</p>
+                                            </div>
+                                        `;
+                        }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+
+                    // Update header
+                    document.getElementById('reviews-container').innerHTML = html;
+                    document.getElementById('reviews-container').previousElementSibling.querySelector('h3').innerText = `Themen-Cluster (${app.topics.topics.length})`;
+                }
+
+                // Initialize - runs when everything is loaded
+                document.getElementById('btn-insights-mode').onclick = () => generateInsightsMode();
+                document.getElementById('btn-topics-mode').onclick = () => generateTopicsMode();
+
+                document.getElementById('btn-select-app-a').onclick = () => { state.activeAppId = 'app_a'; render(); updateAnalysisControlsVisibility(); };
+                document.getElementById('btn-select-app-b').onclick = () => { state.activeAppId = 'app_b'; render(); updateAnalysisControlsVisibility(); };
+
+                // New Handlers
+                document.getElementById('btn-fetch-apple').onclick = handleFetchApple;
+                const btnUploadGoogle = document.getElementById('btn-upload-google');
+                if (btnUploadGoogle) btnUploadGoogle.onclick = handleUploadGoogle;
+
+                const inputGoogleCard = document.getElementById('input-google-csv-card');
+                if (inputGoogleCard) inputGoogleCard.onchange = handleGoogleFileSelect;
+
+                // Date Validation Handlers
+                const updateValidation = () => {
+                    const from = document.getElementById('analysis-date-from').value;
+                    const to = document.getElementById('analysis-date-to').value;
+                    validateDateRange(from ? new Date(from) : null, to ? new Date(to) : null);
+                    render(); // Live update list
                 };
+                document.getElementById('analysis-date-from').onchange = updateValidation;
+                document.getElementById('analysis-date-to').onchange = updateValidation;
+
 
                 document.getElementById('btn-export-csv').onclick = () => {
                     const app = state.apps[state.activeAppId];
@@ -907,12 +1301,19 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
 
                 document.getElementById('btn-header-settings').onclick = () => window.toggleModal(true);
 
+                // Set default date range (Last 14 days)
+                const today = new Date();
+                const last14Days = new Date();
+                last14Days.setDate(today.getDate() - 14);
+
+                document.getElementById('analysis-date-to').value = today.toISOString().split('T')[0];
+                document.getElementById('analysis-date-from').value = last14Days.toISOString().split('T')[0];
+
                 render();
                 if (!state.apiKey) {
                     window.toggleModal(true);
-                } else {
-                    loadData();
                 }
+                // No auto loadData() anymore
 
             }); // End window.addEventListener('load')
         </script>
