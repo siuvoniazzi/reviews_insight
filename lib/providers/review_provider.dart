@@ -7,13 +7,19 @@ import '../services/gemini_service.dart';
 class ReviewProvider with ChangeNotifier {
   final StoreService _storeService = StoreService();
 
-  List<Review> _reviews = [];
-  String _insights = '';
+  List<Review> _appleReviews = [];
+  List<Review> _googleReviews = [];
+  String _appleInsights = '';
+  String _googleInsights = '';
+
   bool _isLoading = false;
   String? _error;
 
-  List<Review> get reviews => _reviews;
-  String get insights => _insights;
+  List<Review> get appleReviews => _appleReviews;
+  List<Review> get googleReviews => _googleReviews;
+  String get appleInsights => _appleInsights;
+  String get googleInsights => _googleInsights;
+
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -23,36 +29,64 @@ class ReviewProvider with ChangeNotifier {
     _geminiService = GeminiService(apiKey: key);
   }
 
-  Future<void> analyzeFiles({Uint8List? appleCsv, Uint8List? googleCsv}) async {
+  void clearReviews() {
+    _appleReviews = [];
+    _googleReviews = [];
+    _appleInsights = '';
+    _googleInsights = '';
+    _error = null;
+    notifyListeners();
+  }
+
+  Future<void> setGoogleReviewsFromBytes(List<Uint8List> csvBytesList) async {
+    _googleReviews = [];
+    for (final fileBytes in csvBytesList) {
+      _googleReviews.addAll(_storeService.parseGoogleCsv(fileBytes));
+    }
+    notifyListeners();
+  }
+
+  Future<void> fetchAppleReviews(String appId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _appleReviews = await _storeService.fetchAppleReviews(appId);
+    } catch (e) {
+      _error = "Error fetching Apple reviews: $e";
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> analyze() async {
     if (_geminiService == null) {
       _error = "Please enter a valid Gemini API Key first.";
       notifyListeners();
       return;
     }
 
+    if (_appleReviews.isEmpty && _googleReviews.isEmpty) {
+      _error = "No reviews to analyze. Please fetch or upload reviews first.";
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _error = null;
-    _reviews = [];
-    _insights = '';
     notifyListeners();
 
     try {
-      final List<Review> allReviews = [];
-
-      if (appleCsv != null) {
-        allReviews.addAll(_storeService.parseAppleCsv(appleCsv));
+      if (_appleReviews.isNotEmpty) {
+        _appleReviews.sort((a, b) => b.date.compareTo(a.date));
+        _appleInsights = await _geminiService!.generateInsights(_appleReviews);
       }
 
-      if (googleCsv != null) {
-        allReviews.addAll(_storeService.parseGoogleCsv(googleCsv));
-      }
-
-      if (allReviews.isEmpty) {
-        _error = "No valid reviews found in the uploaded files.";
-      } else {
-        _reviews = allReviews;
-        // Generate insights client-side
-        _insights = await _geminiService!.generateInsights(_reviews);
+      if (_googleReviews.isNotEmpty) {
+        _googleReviews.sort((a, b) => b.date.compareTo(a.date));
+        _googleInsights = await _geminiService!.generateInsights(
+          _googleReviews,
+        );
       }
     } catch (e) {
       _error = "Error during analysis: $e";

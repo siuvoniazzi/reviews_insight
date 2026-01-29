@@ -2,115 +2,191 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../providers/review_provider.dart';
-import '../models/review.dart';
+
+import '../services/pdf_service.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final String appName;
+
+  const DashboardScreen({super.key, this.appName = "App"});
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<ReviewProvider>(context);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Insights Dashboard')),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : provider.error != null
-          ? Center(
+      appBar: AppBar(
+        title: Text('Analyse: $appName'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: "PDF Bericht herunterladen",
+            onPressed: () async {
+              final provider = Provider.of<ReviewProvider>(
+                context,
+                listen: false,
+              );
+              final pdfService = PdfService();
+
+              await pdfService.generateReport(
+                appName: appName,
+                appleInsights: provider.appleInsights,
+                googleInsights: provider.googleInsights,
+                appleReviews: provider.appleReviews,
+                googleReviews: provider.googleReviews,
+              );
+            },
+          ),
+        ],
+      ),
+      body: Consumer<ReviewProvider>(
+        builder: (context, provider, child) {
+          if (provider.error != null) {
+            return Center(
               child: Text(
                 provider.error!,
                 style: const TextStyle(color: Colors.red),
               ),
-            )
-          : Row(
+            );
+          }
+
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.appleReviews.isEmpty && provider.googleReviews.isEmpty) {
+            return const Center(child: Text("Keine Daten gefunden."));
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Insights Panel
-                Expanded(
-                  flex: 1,
-                  child: Card(
-                    margin: const EdgeInsets.all(16),
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Gemini Insights",
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                          const Divider(),
-                          Expanded(child: Markdown(data: provider.insights)),
-                        ],
-                      ),
-                    ),
-                  ),
+                // 1. Insights Comparison Section
+                Text(
+                  "Gemini Insights Comparison",
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                // Reviews List Panel
-                Expanded(
-                  flex: 1,
-                  child: Card(
-                    margin: const EdgeInsets.all(16),
-                    elevation: 4,
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            "Recent Reviews (${provider.reviews.length})",
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                        ),
-                        const Divider(height: 1),
-                        Expanded(
-                          child: ListView.separated(
-                            itemCount: provider.reviews.length,
-                            separatorBuilder: (ctx, i) => const Divider(),
-                            itemBuilder: (context, index) {
-                              final review = provider.reviews[index];
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: _getRatingColor(
-                                    review.rating,
-                                  ),
-                                  foregroundColor: Colors.white,
-                                  child: Text(review.rating.toString()),
-                                ),
-                                title: Text(review.author),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      review.content,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      review.date.toString().split(' ')[0],
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Icon(
-                                  review.source == ReviewSource.apple
-                                      ? Icons.apple
-                                      : Icons.android,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                const SizedBox(height: 16),
+
+                if (provider.appleReviews.isNotEmpty) ...[
+                  _buildSectionHeader(
+                    context,
+                    "Apple App Store Insights",
+                    Icons.apple,
                   ),
+                  const SizedBox(height: 8),
+                  _buildInsightBox(
+                    context,
+                    provider.appleInsights,
+                    Colors.grey.shade100,
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                if (provider.googleReviews.isNotEmpty) ...[
+                  _buildSectionHeader(
+                    context,
+                    "Google Play Store Insights",
+                    Icons.android,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInsightBox(
+                    context,
+                    provider.googleInsights,
+                    Colors.green.shade50,
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                const Divider(thickness: 2),
+                const SizedBox(height: 32),
+
+                // 2. Appendix: All Reviews
+                Text(
+                  "Appendix: Alle Bewertungen",
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
+                const SizedBox(height: 16),
+
+                if (provider.appleReviews.isNotEmpty) ...[
+                  _buildSectionHeader(context, "Apple Reviews", Icons.apple),
+                  const SizedBox(height: 8),
+                  _buildReviewList(provider.appleReviews, ReviewSource.apple),
+                  const SizedBox(height: 24),
+                ],
+
+                if (provider.googleReviews.isNotEmpty) ...[
+                  _buildSectionHeader(context, "Google Reviews", Icons.android),
+                  const SizedBox(height: 8),
+                  _buildReviewList(provider.googleReviews, ReviewSource.google),
+                ],
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, size: 24),
+        const SizedBox(width: 8),
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+      ],
+    );
+  }
+
+  Widget _buildInsightBox(BuildContext context, String insights, Color color) {
+    if (insights.isEmpty) return const SizedBox.shrink();
+    return Card(
+      color: color,
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: MarkdownBody(data: insights),
+      ),
+    );
+  }
+
+  Widget _buildReviewList(List<dynamic> reviews, ReviewSource source) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: reviews.length,
+      separatorBuilder: (_, __) => const Divider(),
+      itemBuilder: (context, index) {
+        final review = reviews[index];
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: _getRatingColor(review.rating),
+            foregroundColor: Colors.white,
+            child: Text(review.rating.toString()),
+          ),
+          title: Text(review.author),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(review.content),
+              const SizedBox(height: 4),
+              Text(
+                "${review.date.day}.${review.date.month}.${review.date.year}",
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          trailing: Icon(
+            source == ReviewSource.apple ? Icons.apple : Icons.android,
+            color: Colors.grey,
+            size: 16,
+          ),
+        );
+      },
     );
   }
 
@@ -120,3 +196,5 @@ class DashboardScreen extends StatelessWidget {
     return Colors.red;
   }
 }
+
+enum ReviewSource { apple, google }

@@ -16,12 +16,12 @@ class GeminiService {
 
     final prompt = StringBuffer();
     prompt.writeln(
-      "Analyze the following mobile app reviews and provide helpful insights.",
+      "Analysiere die folgenden App-Bewertungen und gib hilfreiche Einblicke.",
     );
     prompt.writeln(
-      "Please provide: 1. A global sentiment summary. 2. Top 3 positive points. 3. Top 3 negative points. 4. Actionable advice for the developers.",
+      "Bitte gib an: 1. Eine globale Zusammenfassung der Stimmung. 2. Top 3 positive Punkte. 3. Top 3 negative Punkte. 4. Umsetzbare Ratschläge für die Entwickler. Antworte bitte auf Deutsch.",
     );
-    prompt.writeln("\nReviews:");
+    prompt.writeln("\nBewertungen:");
 
     // Efficiency: Take last 50 reviews to fit context window and basic use case
     // In a real app, might want to categorize or sample better.

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:csv/csv.dart';
+import 'package:http/http.dart' as http;
 import '../models/review.dart';
 
 class StoreService {
@@ -182,6 +183,76 @@ class StoreService {
       return reviews;
     } catch (e) {
       print("Error parsing Google CSV: $e");
+      rethrow;
+    }
+  }
+
+  /// Fetches reviews directly from Apple RSS feed
+  Future<List<Review>> fetchAppleReviews(
+    String appId, {
+    String country = 'ch',
+  }) async {
+    try {
+      final url = Uri.parse(
+        'https://itunes.apple.com/$country/rss/customerreviews/id=$appId/sortBy=mostRecent/json',
+      );
+      print('Fetching reviews from: $url');
+
+      final response = await http.get(url);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load reviews: ${response.statusCode}');
+      }
+
+      final data = json.decode(response.body);
+      final feed = data['feed'];
+
+      if (feed == null || !feed.containsKey('entry')) {
+        return [];
+      }
+
+      final entries = feed['entry'];
+      List<dynamic> entryList = [];
+      if (entries is List) {
+        entryList = entries;
+      } else {
+        entryList = [entries];
+      }
+
+      final List<Review> reviews = [];
+
+      for (var entry in entryList) {
+        try {
+          final author = entry['author']?['name']?['label'] ?? 'Anonymous';
+          final title = entry['title']?['label'] ?? '';
+          final content = entry['content']?['label'] ?? '';
+          final ratingStr = entry['im:rating']?['label'] ?? '0';
+          final rating = double.tryParse(ratingStr) ?? 0.0;
+
+          // Apple doesn't provide easy date in JSON RSS, but we can try 'updated'
+          // Format usually: 2023-10-27T02:00:00-07:00
+          DateTime date = DateTime.now();
+          if (entry['updated'] != null) {
+            date =
+                DateTime.tryParse(entry['updated']['label']) ?? DateTime.now();
+          }
+
+          reviews.add(
+            Review(
+              author: author,
+              rating: rating,
+              content: title.isNotEmpty ? "$title\n$content" : content,
+              date: date,
+              source: ReviewSource.apple,
+            ),
+          );
+        } catch (e) {
+          print("Error parsing entry: $e");
+        }
+      }
+      return reviews;
+    } catch (e) {
+      print("Error fetching Apple reviews: $e");
       rethrow;
     }
   }
