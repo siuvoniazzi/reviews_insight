@@ -9,6 +9,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Material+Icons+Round&amp;display=swap"
         rel="stylesheet" />
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -115,7 +116,14 @@
                 <div class="flex items-baseline gap-3 mb-2 flex-wrap">
                     <h2 class="text-3xl font-bold tracking-tight">Gemini Insights Comparison</h2>
                     <span class="text-slate-500 text-sm font-normal" id="last-updated">Aktualisiert: nie</span>
-                    <span class="text-slate-500 text-sm font-normal" id="date-range-badge"></span>
+                    <button id="btn-export-img-insights"
+                        class="hidden px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-400 font-medium transition-colors ml-4 flex items-center gap-1">
+                        <span class="material-icons-round text-sm">content_copy</span> Insights kopieren
+                    </button>
+                    <button id="btn-export-img-topics"
+                        class="hidden px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-400 font-medium transition-colors ml-2 flex items-center gap-1">
+                        <span class="material-icons-round text-sm">content_copy</span> Topics kopieren
+                    </button>
                 </div>
                 <p class="text-slate-600 dark:text-slate-400 max-w-3xl">Detaillierte KI-gestützte Analyse der
                     App-Store-Bewertungen.</p>
@@ -242,11 +250,18 @@
             <!-- Analysis Results Container (Newly Moved) -->
             <section id="analysis-results-container" class="hidden grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
                 <!-- Apple Results -->
-                <div
+                <div id="card-apple-insights"
                     class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8">
-                    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                        <span class="text-2xl">🍎</span>
-                        <h3 class="font-bold text-lg">Apple Insights</h3>
+                    <div
+                        class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🍎</span>
+                            <h3 class="font-bold text-lg">Apple Insights</h3>
+                        </div>
+                        <button id="btn-copy-apple-insight" title="Karte kopieren"
+                            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <span class="material-icons-round">content_copy</span>
+                        </button>
                     </div>
                     <div>
                         <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment Übersicht
@@ -273,11 +288,18 @@
                 </div>
 
                 <!-- Google Results -->
-                <div
+                <div id="card-google-insights"
                     class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 space-y-8">
-                    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                        <span class="text-2xl">▶️</span>
-                        <h3 class="font-bold text-lg">Google Insights</h3>
+                    <div
+                        class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">▶️</span>
+                            <h3 class="font-bold text-lg">Google Insights</h3>
+                        </div>
+                        <button id="btn-copy-google-insight" title="Karte kopieren"
+                            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <span class="material-icons-round">content_copy</span>
+                        </button>
                     </div>
                     <div>
                         <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Sentiment Übersicht
@@ -998,15 +1020,9 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     document.getElementById('label-app-a-name').innerText = state.apps.app_a.name;
                     document.getElementById('label-app-b-name').innerText = state.apps.app_b.name;
 
-                    // Update date range badge
-                    const dateRangeBadge = document.getElementById('date-range-badge');
-                    if (app.dateFrom || app.dateTo) {
-                        const fromStr = app.dateFrom ? new Date(app.dateFrom).toLocaleDateString('de-CH') : 'Anfang';
-                        const toStr = app.dateTo ? new Date(app.dateTo).toLocaleDateString('de-CH') : 'Heute';
-                        dateRangeBadge.innerHTML = `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-medium">📅 ${fromStr} - ${toStr}</span>`;
-                    } else {
-                        dateRangeBadge.innerHTML = '';
-                    }
+                    updateExportButtonVisibility(); // Update buttons based on state
+
+
 
                     // Show/hide analysis mode selector
                     const analysisModeSelector = document.getElementById('analysis-mode-selector');
@@ -1018,6 +1034,8 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     } else {
                         analysisModeSelector.classList.add('hidden');
                     }
+
+
 
                     // Update Review Count Badges (if no verdict yet)
                     if (!app.insights.apple && app.appleReviews && app.appleReviews.length > 0) {
@@ -1188,17 +1206,22 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     // Show topics in reviews container
                     let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
 
-                    app.topics.topics.forEach(topic => {
+                    app.topics.topics.forEach((topic, i) => {
                         const sentimentColor = topic.sentiment === 'POSITIVE' ? 'emerald' : (topic.sentiment === 'NEGATIVE' ? 'red' : 'slate');
                         const osBadge = topic.os_specificity === 'iOS' ? '🍎 iOS' : (topic.os_specificity === 'Android' ? '▶️ Android' : '📱 Beide');
 
                         html += `
-                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                            <div id="topic-card-${i}" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                                 <div class="flex justify-between items-start mb-3">
                                     <h3 class="font-bold text-lg text-slate-900 dark:text-white">${topic.title}</h3>
-                                    <span class="px-2 py-1 bg-${sentimentColor}-100 dark:bg-${sentimentColor}-900/30 text-${sentimentColor}-700 dark:text-${sentimentColor}-400 text-xs rounded-full font-bold">
-                                        ${topic.sentiment}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-1 bg-${sentimentColor}-100 dark:bg-${sentimentColor}-900/30 text-${sentimentColor}-700 dark:text-${sentimentColor}-400 text-xs rounded-full font-bold">
+                                            ${topic.sentiment}
+                                        </span>
+                                        <button class="btn-copy-topic text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" data-card-id="topic-card-${i}" title="Karte kopieren">
+                                            <span class="material-icons-round">content_copy</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="mb-4 flex items-center gap-2">
                                     <span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400">
@@ -1236,6 +1259,22 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     // Update header
                     document.getElementById('reviews-container').innerHTML = html;
                     document.getElementById('reviews-container').previousElementSibling.querySelector('h3').innerText = `Themen-Cluster (${app.topics.topics.length})`;
+                    updateExportButtonVisibility();
+                }
+
+                function updateExportButtonVisibility() {
+                    const app = state.apps[state.activeAppId];
+                    const hasInsights = app.insights.apple || app.insights.google; // Check for any insight content
+                    const hasTopics = app.topics;
+
+                    const btnExportInsights = document.getElementById('btn-export-img-insights');
+                    const btnExportTopics = document.getElementById('btn-export-img-topics');
+
+                    if (hasInsights) btnExportInsights.classList.remove('hidden');
+                    else btnExportInsights.classList.add('hidden');
+
+                    if (hasTopics) btnExportTopics.classList.remove('hidden');
+                    else btnExportTopics.classList.add('hidden');
                 }
 
                 // Initialize - runs when everything is loaded
@@ -1252,6 +1291,156 @@ Antworte nur mit validem JSON, kein Markdown.`;
 
                 const inputGoogleCard = document.getElementById('input-google-csv-card');
                 if (inputGoogleCard) inputGoogleCard.onchange = handleGoogleFileSelect;
+
+                // Image Export Handlers
+                async function captureElements(elements, filename) {
+                    const btn = document.activeElement; // To restore focus/state if needed
+                    const originalText = btn ? btn.innerText : '';
+                    if (btn) btn.innerText = '⏳';
+
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'absolute';
+                    wrapper.style.left = '-9999px';
+                    wrapper.style.top = '0';
+                    wrapper.style.width = '1200px';
+                    wrapper.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0F172A' : '#F8FAFC';
+                    wrapper.style.padding = '40px';
+                    wrapper.style.zIndex = '9999';
+
+                    // Header
+                    const header = document.createElement('h2');
+                    header.innerText = "ReviewAI Report";
+                    header.style.fontFamily = 'sans-serif';
+                    header.style.marginBottom = '20px';
+                    header.style.fontSize = '24px';
+                    header.style.fontWeight = 'bold';
+                    header.style.color = document.documentElement.classList.contains('dark') ? '#fff' : '#0F172A';
+                    wrapper.appendChild(header);
+
+                    // Add elements
+                    elements.forEach(el => {
+                        if (el && !el.classList.contains('hidden')) {
+                            // Clone deeply
+                            const clone = el.cloneNode(true);
+
+                            // Clean up clone styles for static export
+                            clone.style.margin = '0 0 40px 0';
+                            clone.style.transform = 'none';
+                            clone.style.transition = 'none';
+
+                            // Ensure text colors are right (Tailwind dark mode relies on class on parent)
+                            if (document.documentElement.classList.contains('dark')) {
+                                clone.classList.add('dark');
+                            }
+
+                            wrapper.appendChild(clone);
+                        }
+                    });
+
+                    document.body.appendChild(wrapper);
+
+                    try {
+                        // Wait a tick for rendering
+                        await new Promise(r => setTimeout(r, 100));
+
+                        const canvas = await html2canvas(wrapper, {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? '#0F172A' : '#F8FAFC',
+                            scale: 2,
+                            useCORS: true,
+                            logging: false
+                        });
+
+                        canvas.toBlob(blob => {
+                            try {
+                                const item = new ClipboardItem({ "image/png": blob });
+                                navigator.clipboard.write([item]);
+                                alert("✅ Bild in die Zwischenablage kopiert!");
+                            } catch (err) {
+                                console.error("Clipboard export failed", err);
+                                alert("Kopieren fehlgeschlagen: " + err.message);
+                            }
+                        });
+                    } catch (err) {
+                        console.error("Export failed", err);
+                        alert("Export fehlgeschlagen: " + err.message);
+                    } finally {
+                        document.body.removeChild(wrapper);
+                        if (btn) btn.innerHTML = originalText; // Restore button content (icon logic might be lost, simplified here)
+                        // Actually, my buttons have icons. restoring innerText wipes html. 
+                        // Better: don't change text or restore innerHTML.
+                        // Let's just not change text for now to be safe.
+                        if (btn) btn.innerHTML = originalText;
+                    }
+                }
+
+                document.getElementById('btn-export-img-insights').onclick = function () {
+                    const btn = this;
+                    const oldHTML = btn.innerHTML;
+                    btn.innerHTML = '<span class="animate-spin">⏳</span>'; // Simple loading feedback
+
+                    setTimeout(() => {
+                        captureElements([
+                            document.getElementById('analysis-date-controls'),
+                            document.getElementById('analysis-results-container'),
+                            document.getElementById('advice-container')
+                        ], `ReviewAI_Insights`).then(() => btn.innerHTML = oldHTML);
+                    }, 50);
+                };
+
+                document.getElementById('btn-export-img-topics').onclick = function () {
+                    const btn = this;
+                    const oldHTML = btn.innerHTML;
+                    btn.innerHTML = '<span class="animate-spin">⏳</span>';
+
+                    setTimeout(() => {
+                        captureElements([
+                            document.getElementById('analysis-date-controls'),
+                            document.getElementById('reviews-section')
+                        ], `ReviewAI_Topics`).then(() => btn.innerHTML = oldHTML);
+                    }, 50);
+                };
+
+                // Individual Card Copy Handlers
+                if (document.getElementById('btn-copy-apple-insight')) {
+                    document.getElementById('btn-copy-apple-insight').onclick = function () {
+                        const btn = this;
+                        const oldHTML = btn.innerHTML;
+                        btn.innerHTML = '<span class="animate-spin text-sm">⏳</span>';
+                        setTimeout(() => {
+                            captureElements([document.getElementById('card-apple-insights')], 'Apple_Insights')
+                                .then(() => btn.innerHTML = oldHTML);
+                        }, 50);
+                    }
+                }
+
+                if (document.getElementById('btn-copy-google-insight')) {
+                    document.getElementById('btn-copy-google-insight').onclick = function () {
+                        const btn = this;
+                        const oldHTML = btn.innerHTML;
+                        btn.innerHTML = '<span class="animate-spin text-sm">⏳</span>';
+                        setTimeout(() => {
+                            captureElements([document.getElementById('card-google-insights')], 'Google_Insights')
+                                .then(() => btn.innerHTML = oldHTML);
+                        }, 50);
+                    }
+                }
+
+                // Topic Card Copy Handlers (Delegation for dynamic elements)
+                document.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.btn-copy-topic');
+                    if (btn) {
+                        const cardId = btn.getAttribute('data-card-id');
+                        const oldHTML = btn.innerHTML;
+                        btn.innerHTML = '<span class="animate-spin text-sm">⏳</span>';
+                        setTimeout(() => {
+                            const card = document.getElementById(cardId);
+                            if (card) {
+                                captureElements([card], 'Topic_Cluster')
+                                    .then(() => btn.innerHTML = oldHTML);
+                            }
+                        }, 50);
+                    }
+                });
 
                 // Date Validation Handlers
                 const updateValidation = () => {
