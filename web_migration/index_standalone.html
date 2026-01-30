@@ -9,6 +9,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Material+Icons+Round&amp;display=swap"
         rel="stylesheet" />
+    <link rel="icon"
+        href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23E30613"/><path fill="white" d="M25 75h15V45H25v30zm20 0h15V25H45v50zm20 0h15V55H65v20z"/></svg>'>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
@@ -115,14 +117,7 @@
                 <div class="flex items-baseline gap-3 mb-2 flex-wrap">
                     <h2 class="text-3xl font-bold tracking-tight">Gemini Insights Comparison</h2>
                     <span class="text-slate-500 text-sm font-normal" id="last-updated">Aktualisiert: nie</span>
-                    <button id="btn-export-img-insights"
-                        class="hidden px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-400 font-medium transition-colors ml-4 flex items-center gap-1">
-                        <span class="material-icons-round text-sm">content_copy</span> Insights kopieren
-                    </button>
-                    <button id="btn-export-img-topics"
-                        class="hidden px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-400 font-medium transition-colors ml-2 flex items-center gap-1">
-                        <span class="material-icons-round text-sm">content_copy</span> Topics kopieren
-                    </button>
+
                 </div>
                 <p class="text-slate-600 dark:text-slate-400 max-w-3xl">Detaillierte KI-gestützte Analyse der
                     App-Store-Bewertungen.</p>
@@ -463,6 +458,37 @@
 
                 let configEditingApp = 'app_a';
 
+                const showToast = (message, type = 'info') => {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+
+                    const toast = document.createElement('div');
+                    let bgColor = 'bg-slate-800';
+                    let icon = 'info';
+
+                    if (type === 'error' || message.toLowerCase().includes('fehler') || message.toLowerCase().includes('failed') || message.toLowerCase().includes('error')) {
+                        bgColor = 'bg-red-500';
+                        icon = 'error';
+                    } else if (type === 'success' || message.includes('✅')) {
+                        bgColor = 'bg-emerald-600';
+                        icon = 'check_circle';
+                    } else if (type === 'warning' || message.includes('⚠️')) {
+                        bgColor = 'bg-amber-500';
+                        icon = 'warning';
+                    }
+
+                    toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-y-10 opacity-0 pointer-events-auto`;
+                    toast.innerHTML = `<span class="material-icons-round text-sm">${icon}</span> <span class="text-sm font-medium">${message.replace('✅ ', '').replace('⚠️ ', '')}</span>`;
+
+                    container.appendChild(toast);
+
+                    requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
+                    setTimeout(() => {
+                        toast.classList.add('opacity-0', 'translate-y-2');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                };
+
                 // Modal Functions - Make global for onclick handlers
                 window.toggleModal = function (show) {
                     const modal = document.getElementById('config-modal');
@@ -727,7 +753,7 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                 async function handleFetchApple() {
                     const currentApp = state.apps[state.activeAppId];
                     if (!currentApp.id) {
-                        alert('⚠️ Bitte erst Apple App ID in den Einstellungen konfigurieren!');
+                        showToast('⚠️ Bitte erst Apple App ID in den Einstellungen konfigurieren!');
                         window.toggleModal(true);
                         return;
                     }
@@ -750,10 +776,10 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                         updateAnalysisControlsVisibility();
 
                         render(); // Update reviews list immediately
-                        alert(`✅ ${currentApp.appleReviews.length} Apple Reviews geladen!`);
+                        showToast(`✅ ${currentApp.appleReviews.length} Apple Reviews geladen!`);
                     } catch (error) {
                         console.error('Error fetching Apple reviews:', error);
-                        alert('Fehler beim Laden der Apple Reviews: ' + error.message);
+                        showToast('Fehler beim Laden der Apple Reviews: ' + error.message);
                     } finally {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
@@ -793,10 +819,10 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                         updateAnalysisControlsVisibility();
 
                         render(); // Update reviews list immediately
-                        alert(`✅ ${currentApp.googleReviews.length} Google Reviews geladen!`);
+                        showToast(`✅ ${currentApp.googleReviews.length} Google Reviews geladen!`);
                     } catch (error) {
                         console.error('Error parsing Google CSV:', error);
-                        alert('Fehler beim Laden der CSV Datei: ' + error.message);
+                        showToast('Fehler beim Laden der CSV Datei: ' + error.message);
                     } finally {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
@@ -885,12 +911,12 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                     const currentApp = state.apps[state.activeAppId];
 
                     if (!currentApp.reviewsLoaded) {
-                        alert('⚠️ Bitte laden Sie zuerst die Daten!');
+                        showToast('⚠️ Bitte laden Sie zuerst die Daten!');
                         return;
                     }
 
                     if (!state.apiKey) {
-                        alert('⚠️ Bitte konfigurieren Sie zuerst Ihren Gemini API Key!');
+                        showToast('⚠️ Bitte konfigurieren Sie zuerst Ihren Gemini API Key!');
                         return;
                     }
 
@@ -903,7 +929,7 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                     currentApp.filteredGoogle = filterReviewsByDate(currentApp.googleReviews, dateFrom, dateTo);
 
                     if (currentApp.filteredApple.length === 0 && currentApp.filteredGoogle.length === 0) {
-                        alert('⚠️ Keine Reviews im gewählten Zeitraum!');
+                        showToast('⚠️ Keine Reviews im gewählten Zeitraum!');
                         return;
                     }
 
@@ -931,7 +957,7 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                         render();
                     } catch (error) {
                         console.error('Error generating insights:', error);
-                        alert('Fehler bei der Analyse: ' + error.message);
+                        showToast('Fehler bei der Analyse: ' + error.message);
                     } finally {
                         document.getElementById('loading-indicator').classList.add('hidden');
                         document.getElementById('dashboard-content').classList.remove('opacity-50');
@@ -942,12 +968,12 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                     const currentApp = state.apps[state.activeAppId];
 
                     if (!currentApp.reviewsLoaded) {
-                        alert('⚠️ Bitte laden Sie zuerst die Daten!');
+                        showToast('⚠️ Bitte laden Sie zuerst die Daten!');
                         return;
                     }
 
                     if (!state.apiKey) {
-                        alert('⚠️ Bitte konfigurieren Sie zuerst Ihren Gemini API Key!');
+                        showToast('⚠️ Bitte konfigurieren Sie zuerst Ihren Gemini API Key!');
                         return;
                     }
 
@@ -970,7 +996,7 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                         ];
 
                         if (allReviews.length === 0) {
-                            alert('⚠️ Keine Reviews zum Gruppieren!');
+                            showToast('⚠️ Keine Reviews zum Gruppieren!');
                             return;
                         }
 
@@ -982,7 +1008,7 @@ ${reviews.slice(0, 50).map(r => `- [${r.source}] rating: ${r.rating}, content: $
                         renderTopics();
                     } catch (error) {
                         console.error('Error generating topics:', error);
-                        alert('Fehler bei der Themen-Analyse: ' + error.message);
+                        showToast('Fehler bei der Themen-Analyse: ' + error.message);
                     } finally {
                         document.getElementById('loading-indicator').classList.add('hidden');
                         document.getElementById('dashboard-content').classList.remove('opacity-50');
@@ -1088,40 +1114,66 @@ Antworte nur mit validem JSON, kein Markdown.`;
 
                     if (appleAdvice.length > 0) {
                         adviceHTML += `
-                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2 col-span-full">
-                                <span class="text-2xl">🍎</span>
-                                Handlungsempfehlung iOS
-                            </h3>
+                            <div class="col-span-full space-y-4">
+                                <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                    <span class="text-2xl">🍎</span>
+                                    Handlungsempfehlung iOS
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         `;
-                        appleAdvice.forEach(a => {
+                        appleAdvice.forEach((a, i) => {
+                            const cardId = `advice-card-apple-${i}`;
                             adviceHTML += `
-                                <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-                                    <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center mb-4">
-                                        <span class="material-icons-round">campaign</span>
-                                    </div>
-                                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${a}</p>
+                                <div id="${cardId}" class="relative p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm hover:shadow-md transition-all group overflow-hidden">
+                                     <div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+                                     <button class="btn-copy-advice absolute top-4 right-4 text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-all p-1 bg-white dark:bg-slate-800 rounded-md shadow-sm" data-card-id="${cardId}" title="Karte kopieren">
+                                        <span class="material-icons-round text-sm">content_copy</span>
+                                     </button>
+                                     <div class="flex items-start gap-4">
+                                        <div class="w-10 h-10 shrink-0 bg-red-50 dark:bg-red-900/10 text-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <span class="material-icons-round">lightbulb</span>
+                                        </div>
+                                        <div class="pr-8">
+                                            <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Empfehlung</h5>
+                                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">${a}</p>
+                                        </div>
+                                     </div>
                                 </div>
                             `;
                         });
+                        adviceHTML += `</div></div>`;
                     }
 
                     if (googleAdvice.length > 0) {
                         adviceHTML += `
-                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2 col-span-full">
-                                <span class="text-2xl">▶️</span>
-                                Handlungsempfehlung Android
-                            </h3>
+                            <div class="col-span-full space-y-4">
+                                <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                    <span class="text-2xl">▶️</span>
+                                    Handlungsempfehlung Android
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         `;
-                        googleAdvice.forEach(a => {
+                        googleAdvice.forEach((a, i) => {
+                            const cardId = `advice-card-google-${i}`;
                             adviceHTML += `
-                                <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
-                                    <div class="w-10 h-10 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg flex items-center justify-center mb-4">
-                                        <span class="material-icons-round">campaign</span>
-                                    </div>
-                                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${a}</p>
+                                <div id="${cardId}" class="relative p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm hover:shadow-md transition-all group overflow-hidden">
+                                     <div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+                                     <button class="btn-copy-advice absolute top-4 right-4 text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-all p-1 bg-white dark:bg-slate-800 rounded-md shadow-sm" data-card-id="${cardId}" title="Karte kopieren">
+                                        <span class="material-icons-round text-sm">content_copy</span>
+                                     </button>
+                                     <div class="flex items-start gap-4">
+                                        <div class="w-10 h-10 shrink-0 bg-red-50 dark:bg-red-900/10 text-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <span class="material-icons-round">lightbulb</span>
+                                        </div>
+                                        <div class="pr-8">
+                                            <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Empfehlung</h5>
+                                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">${a}</p>
+                                        </div>
+                                     </div>
                                 </div>
                             `;
                         });
+                        adviceHTML += `</div></div>`;
                     }
 
                     document.getElementById('advice-container').innerHTML = adviceHTML;
@@ -1322,11 +1374,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     const btnExportInsights = document.getElementById('btn-export-img-insights');
                     const btnExportTopics = document.getElementById('btn-export-img-topics');
 
-                    if (hasInsights) btnExportInsights.classList.remove('hidden');
-                    else btnExportInsights.classList.add('hidden');
 
-                    if (hasTopics) btnExportTopics.classList.remove('hidden');
-                    else btnExportTopics.classList.add('hidden');
                 }
 
                 // Initialize - runs when everything is loaded
@@ -1345,7 +1393,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                 if (inputGoogleCard) inputGoogleCard.onchange = handleGoogleFileSelect;
 
                 // Image Export Handlers
-                async function captureElements(elements, filename) {
+                async function captureElements(elements, filename, customWidth = '1200px', includeHeader = true) {
                     const btn = document.activeElement; // To restore focus/state if needed
                     const originalText = btn ? btn.innerText : '';
                     if (btn) btn.innerText = '⏳';
@@ -1354,20 +1402,22 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     wrapper.style.position = 'absolute';
                     wrapper.style.left = '-9999px';
                     wrapper.style.top = '0';
-                    wrapper.style.width = '1200px';
+                    wrapper.style.width = customWidth;
                     wrapper.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0F172A' : '#F8FAFC';
-                    wrapper.style.padding = '40px';
+                    wrapper.style.padding = includeHeader ? '40px' : '20px';
                     wrapper.style.zIndex = '9999';
 
                     // Header
-                    const header = document.createElement('h2');
-                    header.innerText = "ReviewAI Report";
-                    header.style.fontFamily = 'sans-serif';
-                    header.style.marginBottom = '20px';
-                    header.style.fontSize = '24px';
-                    header.style.fontWeight = 'bold';
-                    header.style.color = document.documentElement.classList.contains('dark') ? '#fff' : '#0F172A';
-                    wrapper.appendChild(header);
+                    if (includeHeader) {
+                        const header = document.createElement('h2');
+                        header.innerText = "ReviewAI Report";
+                        header.style.fontFamily = 'sans-serif';
+                        header.style.marginBottom = '20px';
+                        header.style.fontSize = '24px';
+                        header.style.fontWeight = 'bold';
+                        header.style.color = document.documentElement.classList.contains('dark') ? '#fff' : '#0F172A';
+                        wrapper.appendChild(header);
+                    }
 
                     // Add elements
                     elements.forEach(el => {
@@ -1379,6 +1429,15 @@ Antworte nur mit validem JSON, kein Markdown.`;
                             clone.style.margin = '0 0 40px 0';
                             clone.style.transform = 'none';
                             clone.style.transition = 'none';
+
+                            // For single cards without header, remove bottom margin of the only element
+                            if (!includeHeader && elements.length === 1) {
+                                clone.style.margin = '0';
+                            }
+
+                            // Hide all buttons in the export
+                            const buttons = clone.querySelectorAll('button');
+                            buttons.forEach(b => b.style.display = 'none');
 
                             // Ensure text colors are right (Tailwind dark mode relies on class on parent)
                             if (document.documentElement.classList.contains('dark')) {
@@ -1406,15 +1465,15 @@ Antworte nur mit validem JSON, kein Markdown.`;
                             try {
                                 const item = new ClipboardItem({ "image/png": blob });
                                 navigator.clipboard.write([item]);
-                                alert("✅ Bild in die Zwischenablage kopiert!");
+                                showToast("✅ Bild in die Zwischenablage kopiert!");
                             } catch (err) {
                                 console.error("Clipboard export failed", err);
-                                alert("Kopieren fehlgeschlagen: " + err.message);
+                                showToast("Kopieren fehlgeschlagen: " + err.message);
                             }
                         });
                     } catch (err) {
                         console.error("Export failed", err);
-                        alert("Export fehlgeschlagen: " + err.message);
+                        showToast("Export fehlgeschlagen: " + err.message);
                     } finally {
                         document.body.removeChild(wrapper);
                         if (btn) btn.innerHTML = originalText; // Restore button content (icon logic might be lost, simplified here)
@@ -1425,32 +1484,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     }
                 }
 
-                document.getElementById('btn-export-img-insights').onclick = function () {
-                    const btn = this;
-                    const oldHTML = btn.innerHTML;
-                    btn.innerHTML = '<span class="animate-spin">⏳</span>'; // Simple loading feedback
 
-                    setTimeout(() => {
-                        captureElements([
-                            document.getElementById('analysis-date-controls'),
-                            document.getElementById('analysis-results-container'),
-                            document.getElementById('advice-container')
-                        ], `ReviewAI_Insights`).then(() => btn.innerHTML = oldHTML);
-                    }, 50);
-                };
-
-                document.getElementById('btn-export-img-topics').onclick = function () {
-                    const btn = this;
-                    const oldHTML = btn.innerHTML;
-                    btn.innerHTML = '<span class="animate-spin">⏳</span>';
-
-                    setTimeout(() => {
-                        captureElements([
-                            document.getElementById('analysis-date-controls'),
-                            document.getElementById('reviews-section')
-                        ], `ReviewAI_Topics`).then(() => btn.innerHTML = oldHTML);
-                    }, 50);
-                };
 
                 // Individual Card Copy Handlers
                 if (document.getElementById('btn-copy-apple-insight')) {
@@ -1459,7 +1493,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                         const oldHTML = btn.innerHTML;
                         btn.innerHTML = '<span class="animate-spin text-sm">⏳</span>';
                         setTimeout(() => {
-                            captureElements([document.getElementById('card-apple-insights')], 'Apple_Insights')
+                            captureElements([document.getElementById('card-apple-insights')], 'Apple_Insights', '800px', false)
                                 .then(() => btn.innerHTML = oldHTML);
                         }, 50);
                     }
@@ -1471,14 +1505,15 @@ Antworte nur mit validem JSON, kein Markdown.`;
                         const oldHTML = btn.innerHTML;
                         btn.innerHTML = '<span class="animate-spin text-sm">⏳</span>';
                         setTimeout(() => {
-                            captureElements([document.getElementById('card-google-insights')], 'Google_Insights')
+                            captureElements([document.getElementById('card-google-insights')], 'Google_Insights', '800px', false)
                                 .then(() => btn.innerHTML = oldHTML);
                         }, 50);
                     }
                 }
 
-                // Topic Card Copy Handlers (Delegation for dynamic elements)
+                // Topic & Advice Card Copy Handlers (Delegation)
                 document.addEventListener('click', function (e) {
+                    // Topic Cards
                     const btn = e.target.closest('.btn-copy-topic');
                     if (btn) {
                         const cardId = btn.getAttribute('data-card-id');
@@ -1487,22 +1522,64 @@ Antworte nur mit validem JSON, kein Markdown.`;
                         setTimeout(() => {
                             const card = document.getElementById(cardId);
                             if (card) {
-                                captureElements([card], 'Topic_Cluster')
+                                captureElements([card], 'Topic_Cluster', '500px', false)
                                     .then(() => btn.innerHTML = oldHTML);
+                            }
+                        }, 50);
+                    }
+
+                    // Advice Cards
+                    const btnAdvice = e.target.closest('.btn-copy-advice');
+                    if (btnAdvice) {
+                        const cardId = btnAdvice.getAttribute('data-card-id');
+                        const oldHTML = btnAdvice.innerHTML;
+                        btnAdvice.innerHTML = '<span class="animate-spin text-sm">⏳</span>';
+                        btnAdvice.style.opacity = '1'; // Force visible
+                        setTimeout(() => {
+                            const card = document.getElementById(cardId);
+                            if (card) {
+                                btnAdvice.style.display = 'none'; // Hide for capture
+                                captureElements([card], 'Recommendation', '450px', false)
+                                    .then(() => {
+                                        btnAdvice.innerHTML = oldHTML;
+                                        btnAdvice.style.display = 'block';
+                                        btnAdvice.style.opacity = ''; // Reset
+                                    })
+                                    .catch(() => {
+                                        btnAdvice.innerHTML = oldHTML;
+                                        btnAdvice.style.display = 'block';
+                                        btnAdvice.style.opacity = '';
+                                    });
                             }
                         }, 50);
                     }
                 });
 
                 // Date Validation Handlers
-                const updateValidation = () => {
+                // Date Validation & Invalidation Handlers
+                const handleDateChange = () => {
                     const from = document.getElementById('analysis-date-from').value;
                     const to = document.getElementById('analysis-date-to').value;
                     validateDateRange(from ? new Date(from) : null, to ? new Date(to) : null);
-                    render(); // Live update list
+
+                    // Invalidate Analysis if exists
+                    const app = state.apps[state.activeAppId];
+                    if (app.insights.apple || app.insights.google || app.topics) {
+                        app.insights = { apple: null, google: null };
+                        app.topics = null;
+
+                        // Hide containers immediately
+                        document.getElementById('analysis-results-container').classList.add('hidden');
+                        document.getElementById('reviews-section').classList.add('hidden');
+                        document.getElementById('advice-container').innerHTML = '';
+
+                        showToast("Analysen zurückgesetzt (neuer Zeitraum)", "info");
+                    }
+
+                    render(); // Verify stats update
                 };
-                document.getElementById('analysis-date-from').onchange = updateValidation;
-                document.getElementById('analysis-date-to').onchange = updateValidation;
+                document.getElementById('analysis-date-from').onchange = handleDateChange;
+                document.getElementById('analysis-date-to').onchange = handleDateChange;
 
 
                 document.getElementById('btn-export-csv').onclick = () => {
@@ -1510,7 +1587,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     const allReviews = [...app.appleReviews, ...app.googleReviews];
 
                     if (allReviews.length === 0) {
-                        alert('Keine Reviews zum Exportieren vorhanden.');
+                        showToast('Keine Reviews zum Exportieren vorhanden.');
                         return;
                     }
 
@@ -1558,6 +1635,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
 
             }); // End window.addEventListener('load')
         </script>
+        <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
 </body>
 
 </html>
