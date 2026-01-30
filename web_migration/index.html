@@ -173,16 +173,46 @@
                 </div>
             </div>
 
-            <!-- Trends Chart -->
-            <section id="trends-container"
-                class="hidden p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 mb-8 shadow-sm">
-                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                    <span class="material-icons-round text-slate-500">show_chart</span>
-                    Rating-Verlauf (Ø Monatlich)
-                </h3>
-                <div class="h-72 w-full relative">
-                    <canvas id="rating-chart"></canvas>
+            <!-- Trends Charts Container -->
+            <section id="trends-container" class="hidden grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                <!-- Apple Chart -->
+                <div
+                    class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                            <span class="text-2xl">🍎</span>
+                            Rating-Verlauf iOS
+                        </h3>
+                        <button onclick="copyChartToClipboard('chart-apple')"
+                            class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            title="Chart in Zwischenablage kopieren">
+                            <span class="material-icons-round text-lg">content_copy</span>
+                        </button>
+                    </div>
+                    <div class="h-80 w-full relative">
+                        <canvas id="chart-apple"></canvas>
+                    </div>
                 </div>
+
+                <!-- Google Chart -->
+                <div
+                    class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                            <span class="text-2xl">▶️</span>
+                            Rating-Verlauf Android
+                        </h3>
+                        <button onclick="copyChartToClipboard('chart-google')"
+                            class="p-2 text-slate-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-slate-800 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            title="Chart in Zwischenablage kopieren">
+                            <span class="material-icons-round text-lg">content_copy</span>
+                        </button>
+                    </div>
+                    <div class="h-80 w-full relative">
+                        <canvas id="chart-google"></canvas>
+                    </div>
+                </div>
+            </section>
             </section>
 
             <!-- Analysis Date Range Selector (shown after data is loaded) -->
@@ -470,7 +500,8 @@
                 };
 
                 let configEditingApp = 'app_a';
-                let ratingChart = null;
+                let appleChart = null;
+                let googleChart = null;
 
                 const showToast = (message, type = 'info') => {
                     const container = document.getElementById('toast-container');
@@ -1118,8 +1149,8 @@ Antworte nur mit validem JSON, kein Markdown.`;
                         btnA.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'font-semibold');
                     }
 
-                    renderCard('apple', app.insights.apple);
-                    renderCard('google', app.insights.google);
+                    renderCard('apple', app.insights.apple, app.appleReviews ? app.appleReviews.length : 0);
+                    renderCard('google', app.insights.google, app.googleReviews ? app.googleReviews.length : 0);
 
                     // Separate advice for iOS and Android
                     const appleAdvice = app.insights.apple?.advice || [];
@@ -1281,7 +1312,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     }
                 }
 
-                function renderCard(platform, insights) {
+                function renderCard(platform, insights, count) {
                     console.log(`Rendering ${platform} card:`, insights);
                     if (!insights) {
                         console.warn(`No insights for ${platform}, skipping render`);
@@ -1297,7 +1328,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     const color = isNeg ? 'red' : (insights.verdict === 'POSITIVE' ? 'emerald' : 'gray');
 
                     verdict.className = `px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 bg-${color}-100 dark:bg-${color}-900/30 text-${color}-700 dark:text-${color}-400`;
-                    verdict.innerHTML = `<span class="material-icons-round text-sm">${isNeg ? 'trending_down' : 'trending_up'}</span> ${insights.verdict}`;
+                    verdict.innerHTML = `<span class="font-bold">${count} Reviews</span>`;
 
                     sentiment.innerHTML = insights.sentiment;
                     pros.innerHTML = insights.top_positive.map(p => `<li class="flex gap-2 text-slate-600 dark:text-slate-400"><span class="text-emerald-500">•</span> ${p}</li>`).join('');
@@ -1380,6 +1411,22 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     document.getElementById('reviews-container').previousElementSibling.querySelector('h3').innerText = `Themen-Cluster (${app.topics.topics.length})`;
                     updateExportButtonVisibility();
                 }
+
+                // Copy Chart Function
+                window.copyChartToClipboard = (canvasId) => {
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas) return;
+
+                    canvas.toBlob(blob => {
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        navigator.clipboard.write([item]).then(() => {
+                            showToast("Chart in die Zwischenablage kopiert! 📋", "success");
+                        }).catch(err => {
+                            console.error('Copy failed', err);
+                            showToast("Fehler beim Kopieren", "error");
+                        });
+                    });
+                };
 
                 function updateExportButtonVisibility() {
                     const app = state.apps[state.activeAppId];
@@ -1634,6 +1681,106 @@ Antworte nur mit validem JSON, kein Markdown.`;
 
                 // Chart Rendering
                 function renderTrends() {
+                    const app = state.apps[state.activeAppId];
+                    const hasReviews = (app.appleReviews && app.appleReviews.length > 0) || (app.googleReviews && app.googleReviews.length > 0);
+
+                    if (!hasReviews) {
+                        document.getElementById('trends-container').classList.add('hidden');
+                        return;
+                    }
+                    document.getElementById('trends-container').classList.remove('hidden');
+
+                    // Data Processing
+                    const processData = (reviews) => {
+                        const groups = {};
+                        reviews.forEach(r => {
+                            if (!r.date) return;
+                            const key = `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}`;
+                            if (!groups[key]) groups[key] = { sum: 0, count: 0 };
+                            groups[key].sum += r.rating;
+                            groups[key].count++;
+                        });
+                        return groups;
+                    };
+
+                    const appleGroups = processData(app.appleReviews || []);
+                    const googleGroups = processData(app.googleReviews || []);
+
+                    const allLabels = [...new Set([...Object.keys(appleGroups), ...Object.keys(googleGroups)])].sort();
+
+                    const generatePoints = (groups, labels) => {
+                        return labels.map(label => {
+                            const data = groups[label];
+                            if (!data) return null;
+                            return {
+                                x: label,
+                                y: (data.sum / data.count).toFixed(2),
+                                r: Math.min(Math.max(Math.sqrt(data.count) * 4, 6), 35),
+                                count: data.count
+                            };
+                        }).filter(i => i);
+                    };
+
+                    const renderChart = (canvasId, chartInstance, label, points, color, borderColor) => {
+                        const ctx = document.getElementById(canvasId).getContext('2d');
+                        if (chartInstance) chartInstance.destroy();
+
+                        return new Chart(ctx, {
+                            type: 'bubble',
+                            data: {
+                                labels: allLabels,
+                                datasets: [{
+                                    label: label,
+                                    data: points,
+                                    backgroundColor: color,
+                                    borderColor: borderColor,
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'nearest', intersect: true },
+                                scales: {
+                                    y: {
+                                        min: 0,
+                                        max: 5,
+                                        grid: { color: document.documentElement.classList.contains('dark') ? '#334155' : '#e2e8f0' },
+                                        title: { display: true, text: 'Ø Rating', color: '#94a3b8' }
+                                    },
+                                    x: {
+                                        type: 'category',
+                                        labels: allLabels,
+                                        grid: { display: false }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+                                        titleColor: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#0f172a',
+                                        bodyColor: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#475569',
+                                        borderColor: document.documentElement.classList.contains('dark') ? '#334155' : '#e2e8f0',
+                                        borderWidth: 1,
+                                        padding: 10,
+                                        callbacks: {
+                                            label: function (context) {
+                                                const val = context.parsed.y;
+                                                const count = context.raw.count;
+                                                return `${val} Ø (${count} Reviews)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    };
+
+                    appleChart = renderChart('chart-apple', appleChart, 'iOS', generatePoints(appleGroups, allLabels), 'rgba(227, 6, 19, 0.6)', '#E30613');
+                    googleChart = renderChart('chart-google', googleChart, 'Android', generatePoints(googleGroups, allLabels), 'rgba(34, 197, 94, 0.6)', '#22C55E');
+                }
+
+                function renderTrendsOld() {
                     const app = state.apps[state.activeAppId];
                     const hasReviews = (app.appleReviews && app.appleReviews.length > 0) || (app.googleReviews && app.googleReviews.length > 0);
 
