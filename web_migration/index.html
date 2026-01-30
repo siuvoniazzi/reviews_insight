@@ -1658,6 +1658,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                         return Object.keys(groups).sort().map(key => ({
                             x: key,
                             y: (groups[key].sum / groups[key].count).toFixed(2),
+                            r: Math.min(Math.max(Math.sqrt(groups[key].count) * 5, 5), 30),
                             count: groups[key].count
                         }));
                     };
@@ -1682,25 +1683,23 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     }
 
                     ratingChart = new Chart(ctx, {
-                        type: 'bar',
+                        type: 'bubble',
                         data: {
                             labels: allLabels,
                             datasets: [
                                 {
                                     label: 'Apple iOS',
                                     data: alignData(appleData, allLabels),
-                                    backgroundColor: '#E30613',
-                                    borderRadius: 4,
-                                    barPercentage: 0.6,
-                                    categoryPercentage: 0.8
+                                    backgroundColor: 'rgba(227, 6, 19, 0.6)',
+                                    borderColor: '#E30613',
+                                    borderWidth: 1
                                 },
                                 {
                                     label: 'Google Android',
                                     data: alignData(googleData, allLabels),
-                                    backgroundColor: '#22C55E',
-                                    borderRadius: 4,
-                                    barPercentage: 0.6,
-                                    categoryPercentage: 0.8
+                                    backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                                    borderColor: '#22C55E',
+                                    borderWidth: 1
                                 }
                             ]
                         },
@@ -1708,16 +1707,19 @@ Antworte nur mit validem JSON, kein Markdown.`;
                             responsive: true,
                             maintainAspectRatio: false,
                             interaction: {
-                                mode: 'index',
-                                intersect: false,
+                                mode: 'nearest',
+                                intersect: true,
                             },
                             scales: {
                                 y: {
                                     min: 0,
-                                    max: 5,
-                                    grid: { color: document.documentElement.classList.contains('dark') ? '#334155' : '#e2e8f0' }
+                                    max: 5.5,
+                                    grid: { color: document.documentElement.classList.contains('dark') ? '#334155' : '#e2e8f0' },
+                                    title: { display: true, text: 'Ø Rating' }
                                 },
                                 x: {
+                                    type: 'category',
+                                    labels: allLabels,
                                     grid: { display: false }
                                 }
                             },
