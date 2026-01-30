@@ -6,6 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Modern App Review Analysis Dashboard</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Material+Icons+Round&amp;display=swap"
         rel="stylesheet" />
@@ -171,6 +172,18 @@
 
                 </div>
             </div>
+
+            <!-- Trends Chart -->
+            <section id="trends-container"
+                class="hidden p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 mb-8 shadow-sm">
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                    <span class="material-icons-round text-slate-500">show_chart</span>
+                    Rating-Verlauf (Ø Monatlich)
+                </h3>
+                <div class="h-72 w-full relative">
+                    <canvas id="rating-chart"></canvas>
+                </div>
+            </section>
 
             <!-- Analysis Date Range Selector (shown after data is loaded) -->
             <section id="analysis-date-controls"
@@ -457,6 +470,7 @@
                 };
 
                 let configEditingApp = 'app_a';
+                let ratingChart = null;
 
                 const showToast = (message, type = 'info') => {
                     const container = document.getElementById('toast-container');
@@ -1060,6 +1074,7 @@ Antworte nur mit validem JSON, kein Markdown.`;
                     document.getElementById('label-app-b-name').innerText = state.apps.app_b.name;
 
                     updateExportButtonVisibility(); // Update buttons based on state
+                    renderTrends(); // Update Chart
 
 
 
@@ -1616,6 +1631,114 @@ Antworte nur mit validem JSON, kein Markdown.`;
 
                     console.log(`Exported ${allReviews.length} reviews to CSV`);
                 };
+
+                // Chart Rendering
+                function renderTrends() {
+                    const app = state.apps[state.activeAppId];
+                    const hasReviews = (app.appleReviews && app.appleReviews.length > 0) || (app.googleReviews && app.googleReviews.length > 0);
+
+                    if (!hasReviews) {
+                        document.getElementById('trends-container').classList.add('hidden');
+                        return;
+                    }
+                    document.getElementById('trends-container').classList.remove('hidden');
+
+                    const ctx = document.getElementById('rating-chart').getContext('2d');
+
+                    // Aggregate Data per Month
+                    const processData = (reviews) => {
+                        const groups = {};
+                        reviews.forEach(r => {
+                            if (!r.date) return;
+                            const key = `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}`;
+                            if (!groups[key]) groups[key] = { sum: 0, count: 0 };
+                            groups[key].sum += r.rating;
+                            groups[key].count++;
+                        });
+                        return Object.keys(groups).sort().map(key => ({
+                            x: key,
+                            y: (groups[key].sum / groups[key].count).toFixed(2),
+                            count: groups[key].count
+                        }));
+                    };
+
+                    const appleData = processData(app.appleReviews || []);
+                    const googleData = processData(app.googleReviews || []);
+
+                    // Get all unique sorted labels
+                    const allLabels = [...new Set([...appleData.map(d => d.x), ...googleData.map(d => d.x)])].sort();
+
+                    // Align data to labels
+                    const alignData = (sourceData, labels) => {
+                        return labels.map(label => {
+                            const found = sourceData.find(d => d.x === label);
+                            // Return full object or null
+                            return found ? found : null;
+                        });
+                    };
+
+                    if (ratingChart) {
+                        ratingChart.destroy();
+                    }
+
+                    ratingChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: allLabels,
+                            datasets: [
+                                {
+                                    label: 'Apple iOS',
+                                    data: alignData(appleData, allLabels),
+                                    backgroundColor: '#E30613',
+                                    borderRadius: 4,
+                                    barPercentage: 0.6,
+                                    categoryPercentage: 0.8
+                                },
+                                {
+                                    label: 'Google Android',
+                                    data: alignData(googleData, allLabels),
+                                    backgroundColor: '#22C55E',
+                                    borderRadius: 4,
+                                    barPercentage: 0.6,
+                                    categoryPercentage: 0.8
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 5,
+                                    grid: { color: document.documentElement.classList.contains('dark') ? '#334155' : '#e2e8f0' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: { color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#475569' }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            const label = context.dataset.label || '';
+                                            const val = context.parsed.y;
+                                            const count = context.raw ? context.raw.count : 0;
+                                            return `${label}: ${val} Ø (${count} Reviews)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
 
                 document.getElementById('btn-header-settings').onclick = () => window.toggleModal(true);
 
